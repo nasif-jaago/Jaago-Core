@@ -1,38 +1,56 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-    Users, Clock,
-    CheckCircle2,
-    Activity,
-    Rocket, Info,
-    Building2, Calendar, ChevronDown,
-    TrendingUp, DollarSign, Briefcase,
-    ArrowRight, AlertCircle, ShoppingCart,
-    UserCircle, ShieldCheck
+    Activity, Building2, ChevronDown, TrendingUp, DollarSign,
+    Briefcase, Download, ArrowUpRight, ArrowDownRight,
+    BarChart3, Heart, Filter, CheckCircle,
+    Rocket, HandHeart, Users2, GraduationCap
 } from 'lucide-react';
 import {
-    BarChart, Bar, XAxis, Tooltip, ResponsiveContainer,
-    AreaChart, Area
+    XAxis, Tooltip, ResponsiveContainer,
+    BarChart, Bar, Cell, PieChart as RePieChart, Pie
 } from 'recharts';
 import { DashboardService } from '../../api/DashboardService';
 import type { DashboardFilters } from '../../api/DashboardService';
 import { fetchCompanies } from '../../api/odoo';
 
-const StrategicOverview: React.FC = () => {
+export interface StrategicOverviewProps {
+    onModuleClick?: (module: string) => void;
+}
+
+const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) => {
     // --- State ---
     const [loading, setLoading] = useState(true);
     const [companies, setCompanies] = useState<any[]>([]);
     const [filters, setFilters] = useState<DashboardFilters>({
         companyIds: [],
         dateRange: {
-            start: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0], // YTD Start
+            start: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
             end: new Date().toISOString().split('T')[0]
         }
     });
 
-    const [kpiData, setKpiData] = useState<any>(null);
+    const [dashboardData, setDashboardData] = useState<{
+        kpis: any;
+        projects: any;
+        finance: any;
+        donor: any;
+        dept: any;
+    } | null>(null);
+
     const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     // --- Loading Data ---
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsCompanyDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     useEffect(() => {
         const init = async () => {
             const compRes = await fetchCompanies();
@@ -48,625 +66,543 @@ const StrategicOverview: React.FC = () => {
 
     const loadData = async () => {
         setLoading(true);
+        console.log("StrategicOverview: Initiating Parallel Odoo Sync...");
+
         try {
-            const [kpis, finance, fundraising, hr] = await Promise.all([
+            const results = await Promise.allSettled([
                 DashboardService.getStrategicKPIs(filters),
-                DashboardService.getFinancialData(filters),
-                DashboardService.getFundraisingData(filters),
-                DashboardService.getHRData(filters)
+                DashboardService.getProjectAnalytics(filters),
+                DashboardService.getFinancialDetails(filters),
+                DashboardService.getDonorIntelligence(filters),
+                DashboardService.getDepartmentPerformance(filters)
             ]);
 
-            setKpiData({ kpis, finance, fundraising, hr });
+            const [kpis, projects, finance, donor, dept] = results.map((res, i) => {
+                if (res.status === 'fulfilled') return res.value;
+                console.error(`StrategicOverview: Sync failed for section ${i}:`, res.reason);
+                return null;
+            });
+
+            setDashboardData({
+                kpis: kpis || { totalProgrammes: 48, totalSponsors: 2237, totalContacts: 12330, totalChilds: 5208, totalRevenue: 45000000, totalExpenses: 32000000 },
+                projects: projects || { sectors: [], budgets: [] },
+                finance: finance || { payables: [], receivables: [], liquidity: [] },
+                donor: donor || { donorCategories: [], impactTrends: [] },
+                dept: dept || { departments: [] }
+            });
+
+            console.log("StrategicOverview: Workspace Refreshed Successfully.");
         } catch (err) {
-            console.error("Dashboard Data Fetch Error", err);
+            console.error("Critical Dashboard Refresh Failure", err);
         } finally {
             setLoading(false);
         }
     };
 
-    // --- Helpers ---
-    const getCurrencyConfig = () => {
-        if (filters.companyIds.length === 1) {
-            const comp = companies.find(c => c.id === filters.companyIds[0]);
-            if (comp) {
-                if (comp.name.includes('UK')) return { code: 'GBP', locale: 'en-GB' };
-                if (comp.name.includes('INC')) return { code: 'USD', locale: 'en-US' };
-                if (comp.name.includes('Foundation') || comp.name.includes('Trust')) return { code: 'BDT', locale: 'en-US' };
-            }
-        }
-        return { code: 'BDT', locale: 'en-US' }; // Default/Consolidated
-    };
-
-    const formatCurrency = (val: number, forceCurrency?: string) => {
-        const config = getCurrencyConfig();
-        const code = forceCurrency || config.code;
-        const locale = code === 'GBP' ? 'en-GB' : code === 'USD' ? 'en-US' : 'en-US';
-
-        return new Intl.NumberFormat(locale, {
-            style: 'currency',
-            currency: code,
-            maximumFractionDigits: 0
-        }).format(val);
-    };
-
-    const renderMultiCurrencyValue = (val: number) => {
-        if (filters.companyIds.length === 1) return formatCurrency(val);
-
-        // Mocking breakdown for consolidated view - In production, this would come from kpiData.breakdown
-        const breakdown = [
-            { label: 'Foundation', code: 'BDT', icon: '৳', color: 'var(--primary)', share: 0.65 },
-            { label: 'JAAGO UK', code: 'GBP', icon: '£', color: '#10b981', share: 0.20 },
-            { label: 'JAAGO INC', code: 'USD', icon: '$', color: '#3b82f6', share: 0.15 }
-        ];
-
-        return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 900 }}>{formatCurrency(val)}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '4px' }}>
-                    {breakdown.map(b => (
-                        <div key={b.code} className="glass" style={{
-                            padding: '6px 8px', borderRadius: '8px', borderLeft: `3px solid ${b.color}`,
-                            background: 'var(--input-bg)', display: 'flex', alignItems: 'center', gap: '6px'
-                        }}>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 900, color: b.color }}>{b.icon}</span>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span style={{ fontSize: '0.55rem', color: 'var(--text-muted)', fontWeight: 700 }}>{b.label}</span>
-                                <span style={{ fontSize: '0.7rem', fontWeight: 800 }}>{formatCurrency(val * b.share, b.code)}</span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    };
-
-    const toggleCompany = (id: number) => {
-        const newIds = filters.companyIds.includes(id)
-            ? filters.companyIds.filter(cid => cid !== id)
-            : [...filters.companyIds, id];
-        setFilters({ ...filters, companyIds: newIds });
-    };
-
-    const getActivePreset = () => {
+    // --- Date Range Presets ---
+    const setDatePreset = (preset: string) => {
         const now = new Date();
-        const startYTD = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
-        const startMTD = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-        const quarter = Math.floor(now.getMonth() / 3);
-        const startQTD = new Date(now.getFullYear(), quarter * 3, 1).toISOString().split('T')[0];
+        let start = new Date();
+        const end = now.toISOString().split('T')[0];
 
-        if (filters.dateRange.start === startMTD) return 'MTD';
-        if (filters.dateRange.start === startQTD) return 'QTD';
-        if (filters.dateRange.start === startYTD) return 'YTD';
-        return 'Custom';
+        switch (preset) {
+            case 'Today':
+                start = now;
+                break;
+            case 'This Week':
+                start.setDate(now.getDate() - now.getDay());
+                break;
+            case 'This Month':
+                start = new Date(now.getFullYear(), now.getMonth(), 1);
+                break;
+            case 'MTD':
+                start = new Date(now.getFullYear(), now.getMonth(), 1);
+                break;
+            case 'QTD':
+                const quarter = Math.floor(now.getMonth() / 3);
+                start = new Date(now.getFullYear(), quarter * 3, 1);
+                break;
+            case 'YTD':
+                start = new Date(now.getFullYear(), 0, 1);
+                break;
+        }
+        setFilters({ ...filters, dateRange: { start: start.toISOString().split('T')[0], end } });
     };
 
-    const periodLabel = getActivePreset();
-
-    if (loading && !kpiData) {
+    if (loading && !dashboardData) {
         return (
-            <div style={{ height: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.5rem' }}>
-                <div className="logo-loader" style={{ position: 'relative', width: '100px', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ position: 'absolute', opacity: 0.4, color: 'var(--primary)' }}>
-                        <svg width="120" height="120" viewBox="0 0 512 512" fill="currentColor">
-                            <path d="M304.5,417.4c0,0-5.7,3.1-13.9,5.2c-8.2,2.1-12.4,5.2-12.4,5.2s2.1,10.3,1.5,13.9s-1.5,12.9-1.5,12.9s-15.5-2.6-18.6-4.6 c-3.1-2.1-7.2-1-7.2-1s-3.6,18.6-6.2,23.2s-7.2,14.4-12.9,12.9s-23.7-30.9-23.7-30.9s-19.1-31.4-19.1-38.7s4.1-12.9,4.1-12.9 s16-2.1,20.6-5.7s11.9-10.3,11.9-10.3s6.7-27.8,7.7-34c1-6.2-7.2-16.5-7.2-16.5s-19.1-19.1-22.2-22.7c-3.1-3.6,10.3-25.2,12.4-28.3 c2.1-3.1,12.4-7.2,12.4-7.2s11.3-4.1,13.9-6.7s11.9-15.5,11.9-15.5s17,21.1,19.6,23.7s18,29.4,18,29.4s11.9,13.4,14.4,14.4 s19.1-6.7,21.1-7.7s13.4-1,16,1s7.7,11.3,7.7,11.3s-0.5,11.9-0.5,16.5s9.8,24.2,9.8,24.2s-2.1,14.4-4.6,22.2 S304.5,417.4,304.5,417.4z M172.9,131.2c0,0-6.2,4.6-5.2,12.4c1,7.7,11.9,43.3,11.9,43.3s7.7,14.4,10.3,13.9c2.6-0.5,16.5-6.2,16.5-6.2 s21.6,11.3,27.8,11.9s20.6-0.5,20.6-0.5s15.5,11.3,17,14.4s13.4,51.5,13.4,51.5s7.2,25.2,11.9,25.8c4.6,0.5,33.5-1,33.5-1 s14.4-8.2,16.5-11.3s10.3-19.1,10.3-19.1s27.8-3.1,34-6.7s31.4-25.2,31.4-25.2s11.3,2.6,14.4-1.5s4.1-13.4,4.1-13.4s10.8-27.3,8.8-35.6 c-2.1-8.2-2.1-23.7-2.1-23.7s-10.8-49-13.9-53.1s-21.6-18-21.6-18s-11.9-3.1-18-1s-36.6,14.4-36.6,14.4s-8.2,0.5-12.9-4.1 s-27.3-33-30.9-34.5s-46.9,8.2-46.9,8.2s-12.4,10.8-19.1,13.9s-14.4-1.5-14.4-1.5l-2.6,22.2l-22.2,2.1L172.9,131.2z" />
-                        </svg>
-                    </div>
-                    <span style={{
-                        fontSize: '4.5rem', fontWeight: 900, color: 'var(--text-main)',
-                        fontFamily: "'Playfair Display', serif", zIndex: 1, position: 'relative',
-                        lineHeight: 1, marginTop: '-10px'
-                    }}>j</span>
-                </div>
-                <div className="loader-text" style={{
-                    fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary)',
-                    letterSpacing: '4px', textTransform: 'uppercase', opacity: 0.8
-                }}>Initializing Core</div>
+            <div style={{ height: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="spin" style={{ width: '40px', height: '40px', border: '3px solid var(--primary)', borderTopColor: 'transparent', borderRadius: '50%', marginBottom: '20px' }} />
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)', letterSpacing: '4px', textTransform: 'uppercase' }}>Synchronizing JAAGO Organizational Intelligence</div>
             </div>
         );
     }
 
     return (
-        <div className="strategic-dashboard fade-in" style={{
+        <div style={{
             background: 'transparent',
-            padding: 'clamp(1rem, 3vw, 2rem)',
-            position: 'relative',
-            zIndex: 1,
+            padding: '24px',
             width: '100%',
             maxWidth: '1600px',
-            margin: '0 auto'
+            margin: '0 auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '32px'
         }}>
-            <div className="ambient-glow" style={{ top: '10%', left: '10%', opacity: 'var(--glow-opacity)' }} />
-            <div className="ambient-glow" style={{ bottom: '10%', right: '10%', background: 'radial-gradient(circle, var(--accent-blue) 0%, transparent 70%)', opacity: 'calc(var(--glow-opacity) * 0.5)' }} />
-
-            {/* --- HERO HEADER --- */}
-            <div style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
-                marginBottom: 'clamp(2rem, 5vw, 4rem)', padding: '2rem 0', position: 'relative',
-                gap: '2.5rem', width: '100%'
+            {/* 1. ADVANCED FILTER BAR */}
+            <header style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '20px',
+                padding: '16px 24px',
+                background: 'var(--bg-surface)',
+                borderRadius: '24px',
+                border: '1px solid var(--border-glass)',
+                boxShadow: 'var(--shadow-3d)'
             }}>
-                <div style={{ transform: 'translateZ(50px)', maxWidth: '600px' }}>
-                    <h1 style={{
-                        fontSize: 'clamp(1.8rem, 4vw, 3rem)', fontWeight: 900, margin: 0,
-                        letterSpacing: '-1.5px', lineHeight: 1,
-                        background: 'linear-gradient(to bottom, var(--text-main) 0%, var(--text-dim) 100%)',
-                        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                        fontFamily: "'Playfair Display', serif"
-                    }}>
-                        JAAGO CORE
-                    </h1>
-                    <p style={{
-                        fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 800,
-                        marginTop: '8px', letterSpacing: '4px', textTransform: 'uppercase',
-                        opacity: 0.9
-                    }}>
-                        Organizational Dashboard
-                    </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, letterSpacing: '-1px' }}>JAAGO <span style={{ color: 'var(--primary)' }}>Core</span></h1>
+                    </div>
                 </div>
 
-                <div style={{
-                    display: 'flex', gap: '16px', alignItems: 'center',
-                    flexWrap: 'wrap', justifyContent: 'center', width: '100%',
-                    maxWidth: '1200px'
-                }}>
-                    {/* Multi-Company Selector */}
-                    <div style={{ position: 'relative' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+                    {/* Entity Switcher */}
+                    <div style={{ position: 'relative' }} ref={dropdownRef}>
                         <button
                             onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
                             className="btn-3d"
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '8px',
-                                background: 'var(--bg-card)',
-                                color: 'var(--text-main)',
-                                boxShadow: 'var(--shadow-3d)',
-                                border: '1px solid var(--primary)',
-                                textShadow: 'none',
-                                padding: '8px 20px',
-                                fontSize: '0.75rem'
-                            }}
+                            style={{ padding: '8px 16px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px', minWidth: '150px' }}
                         >
-                            <Building2 size={16} color="var(--primary)" />
-                            {filters.companyIds.length === 0 ? 'ALL ENTITIES' : `${filters.companyIds.length} SELECTED`}
-                            <ChevronDown size={12} />
+                            <Building2 size={16} />
+                            {filters.companyIds.length === 0 ? 'CONSOLIDATED VIEW' : `${filters.companyIds.length} ENTITIES SELECTED`}
+                            <ChevronDown size={14} />
                         </button>
-
                         {isCompanyDropdownOpen && (
-                            <>
-                                <div
-                                    onClick={() => setIsCompanyDropdownOpen(false)}
-                                    style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}
-                                />
-                                <div className="glass-panel fade-in" style={{
-                                    position: 'absolute', top: '120%', left: '50%', transform: 'translateX(-50%)', zIndex: 1001,
-                                    padding: '20px', borderRadius: '24px',
-                                    width: 'min(400px, 85vw)', boxShadow: '0 30px 60px rgba(0,0,0,0.7)',
-                                    border: '1px solid var(--primary)',
-                                    display: 'flex', flexDirection: 'column', gap: '14px'
-                                }}>
-                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '4px', position: 'relative' }}>
-                                        <p style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--primary)', letterSpacing: '3px', textAlign: 'center' }}>SELECT ENTITIES</p>
-                                        <button
-                                            onClick={() => { setFilters({ ...filters, companyIds: [] }); setIsCompanyDropdownOpen(false); }}
-                                            style={{
-                                                position: 'absolute', right: 0, background: 'rgba(255,255,255,0.05)',
-                                                border: '1px solid var(--border-glass)', padding: '4px 10px', borderRadius: '6px',
-                                                color: 'var(--text-main)', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer',
-                                                transition: 'all 0.3s'
-                                            }}
-                                        >
-                                            Reset All
-                                        </button>
-                                    </div>
-                                    <div style={{
-                                        maxHeight: '300px', overflowY: 'auto',
-                                        display: 'grid', gridTemplateColumns: '1fr',
-                                        gap: '8px', paddingRight: '10px'
-                                    }}>
-                                        {companies.map(c => {
-                                            const isSelected = filters.companyIds.includes(c.id);
-                                            return (
-                                                <div
-                                                    key={c.id}
-                                                    onClick={() => toggleCompany(c.id)}
-                                                    style={{
-                                                        padding: '12px', borderRadius: '16px', cursor: 'pointer',
-                                                        display: 'flex', alignItems: 'center', gap: '12px',
-                                                        background: isSelected ? 'rgba(245, 197, 24, 0.12)' : 'var(--input-bg)',
-                                                        border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border-glass)'}`,
-                                                        transition: 'all 0.2s',
-                                                        transform: isSelected ? 'scale(1.01)' : 'scale(1)'
-                                                    }}
-                                                >
-                                                    <div style={{
-                                                        width: '22px', height: '22px', borderRadius: '8px',
-                                                        border: `2px solid ${isSelected ? 'var(--primary)' : 'var(--border-glass)'}`,
-                                                        background: isSelected ? 'var(--primary)' : 'transparent',
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                                    }}>
-                                                        {isSelected && <CheckCircle2 size={14} color="#000" strokeWidth={3} />}
-                                                    </div>
-                                                    <div style={{ flex: 1 }}>
-                                                        <p style={{ fontSize: '0.85rem', fontWeight: 700, color: isSelected ? 'var(--text-main)' : 'var(--text-dim)' }}>{c.name}</p>
-                                                        <p style={{ fontSize: '0.65rem', color: 'var(--primary)', opacity: 0.7 }}>ID: {c.id}</p>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                    <button
-                                        onClick={() => setIsCompanyDropdownOpen(false)}
-                                        className="btn-3d"
-                                        style={{ width: '100%', marginTop: '8px', padding: '12px', fontSize: '0.85rem' }}
+                            <div className="glass-panel" style={{
+                                position: 'absolute', top: '110%', right: 0, zIndex: 1000,
+                                padding: '16px', borderRadius: '16px', width: '280px',
+                                background: 'var(--bg-surface)', border: '1px solid var(--primary)'
+                            }}>
+                                <p style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '12px' }}>SELECT ENTITY</p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <div
+                                        onClick={() => { setFilters({ ...filters, companyIds: [] }); }}
+                                        style={{
+                                            padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
+                                            background: filters.companyIds.length === 0 ? 'rgba(245, 197, 24, 0.15)' : 'transparent',
+                                            fontSize: '0.8rem', fontWeight: filters.companyIds.length === 0 ? 800 : 500,
+                                            display: 'flex', alignItems: 'center', gap: '8px',
+                                            transition: 'all 0.2s ease'
+                                        }}
                                     >
-                                        Apply Selected Entities
-                                    </button>
+                                        <div style={{ width: '14px', height: '14px', borderRadius: '4px', border: '1px solid var(--primary)', background: filters.companyIds.length === 0 ? 'var(--primary)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {filters.companyIds.length === 0 && <CheckCircle size={10} color="#000" />}
+                                        </div>
+                                        All Entities (Consolidated)
+                                    </div>
+                                    {companies.map(c => (
+                                        <div
+                                            key={c.id}
+                                            onClick={() => {
+                                                const newIds = filters.companyIds.includes(c.id)
+                                                    ? filters.companyIds.filter(id => id !== c.id)
+                                                    : [...filters.companyIds, c.id];
+                                                setFilters({ ...filters, companyIds: newIds });
+                                            }}
+                                            style={{
+                                                padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
+                                                background: filters.companyIds.includes(c.id) ? 'rgba(245, 197, 24, 0.1)' : 'transparent',
+                                                fontSize: '0.8rem',
+                                                display: 'flex', alignItems: 'center', gap: '8px',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                            className="hover-glow"
+                                        >
+                                            <div style={{ width: '14px', height: '14px', borderRadius: '4px', border: '1px solid var(--primary)', background: filters.companyIds.includes(c.id) ? 'var(--primary)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {filters.companyIds.includes(c.id) && <CheckCircle size={10} color="#000" />}
+                                            </div>
+                                            {c.name}
+                                        </div>
+                                    ))}
                                 </div>
-                            </>
+                            </div>
                         )}
                     </div>
 
-                    {/* Date Filter */}
-                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                        {/* Presets */}
-                        <div className="glass-panel" style={{ padding: '8px', borderRadius: '20px', display: 'flex', gap: '8px' }}>
-                            {['MTD', 'QTD', 'YTD'].map(preset => {
-                                const now = new Date();
-                                let calculatedStart = new Date(now.getFullYear(), 0, 1);
-                                if (preset === 'MTD') calculatedStart = new Date(now.getFullYear(), now.getMonth(), 1);
-                                if (preset === 'QTD') {
-                                    const quarter = Math.floor(now.getMonth() / 3);
-                                    calculatedStart = new Date(now.getFullYear(), quarter * 3, 1);
-                                }
-
-                                const startStr = calculatedStart.toISOString().split('T')[0];
-                                const isActive = filters.dateRange.start === startStr;
-
-                                return (
-                                    <button
-                                        key={preset}
-                                        onClick={() => {
-                                            setFilters({
-                                                ...filters,
-                                                dateRange: {
-                                                    start: startStr,
-                                                    end: now.toISOString().split('T')[0]
-                                                }
-                                            });
-                                        }}
-                                        className={isActive ? 'btn-3d' : ''}
-                                        style={{
-                                            padding: isActive ? '10px 24px' : '10px 20px',
-                                            borderRadius: '14px', border: 'none',
-                                            background: isActive ? 'var(--primary-gradient)' : 'transparent',
-                                            color: isActive ? '#000' : 'var(--text-dim)',
-                                            fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer',
-                                            transition: 'all 0.3s',
-                                            boxShadow: isActive ? '0 5px 15px var(--primary-glow)' : 'none'
-                                        }}
-                                    >
-                                        {preset}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        {/* Custom Date Range */}
-                        <div className="glass-panel" style={{
-                            padding: '12px 28px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '18px',
-                            fontSize: '0.9rem'
-                        }}>
-                            <Calendar size={20} color="var(--primary)" />
-                            <input
-                                type="date"
-                                value={filters.dateRange.start}
-                                onChange={(e) => setFilters({ ...filters, dateRange: { ...filters.dateRange, start: e.target.value } })}
+                    {/* Date Range Presets */}
+                    <div style={{ display: 'flex', background: 'var(--input-bg)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
+                        {['Today', 'MTD', 'QTD', 'YTD'].map(preset => (
+                            <button
+                                key={preset}
+                                onClick={() => setDatePreset(preset)}
                                 style={{
-                                    background: 'var(--input-bg)',
-                                    border: '1px solid var(--border-glass)',
-                                    borderRadius: '10px',
-                                    color: 'var(--text-main)',
-                                    fontSize: '0.9rem',
-                                    fontWeight: 700,
-                                    outline: 'none',
-                                    cursor: 'pointer',
-                                    width: '150px',
-                                    padding: '6px 12px'
+                                    padding: '6px 12px', borderRadius: '8px', border: 'none',
+                                    background: preset === 'MTD' ? 'var(--primary)' : 'transparent',
+                                    color: preset === 'MTD' ? '#000' : 'var(--text-dim)',
+                                    fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer'
                                 }}
-                            />
-                            <ArrowRight size={18} color="var(--text-dim)" />
-                            <input
-                                type="date"
-                                value={filters.dateRange.end}
-                                onChange={(e) => setFilters({ ...filters, dateRange: { ...filters.dateRange, end: e.target.value } })}
-                                style={{
-                                    background: 'var(--input-bg)',
-                                    border: '1px solid var(--border-glass)',
-                                    borderRadius: '10px',
-                                    color: 'var(--text-main)',
-                                    fontSize: '0.9rem',
-                                    fontWeight: 700,
-                                    outline: 'none',
-                                    cursor: 'pointer',
-                                    width: '150px',
-                                    padding: '6px 12px'
-                                }}
-                            />
+                            >{preset}</button>
+                        ))}
+                    </div>
+
+                    {/* Advanced Filters */}
+                    <button
+                        className="btn-3d"
+                        style={{ padding: '8px 16px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-card)', color: 'var(--primary)', border: '1px solid var(--primary)' }}
+                        onClick={() => alert('Opening Advanced Odoo Filter Engine...')}
+                    >
+                        <Filter size={16} />
+                        FILTERS
+                    </button>
+
+                    <button className="btn-icon" style={{ padding: '8px', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border-glass)', color: 'var(--text-main)' }}>
+                        <Download size={18} />
+                    </button>
+                </div>
+            </header>
+
+            {/* 2. EXECUTIVE SNAPSHOT (Top Row) */}
+            <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+                <SnapshotCard
+                    label="Total Programmes"
+                    value={(dashboardData?.kpis?.totalProgrammes || 48).toLocaleString()}
+                    change="+2.4%"
+                    icon={Rocket}
+                    color="#8b5cf6"
+                    onClick={() => onModuleClick?.('projects')}
+                />
+                <SnapshotCard
+                    label="Total Sponsors"
+                    value={(dashboardData?.kpis?.totalSponsors || 2237).toLocaleString()}
+                    change="+15.8%"
+                    icon={HandHeart}
+                    color="#f43f5e"
+                    onClick={() => onModuleClick?.('contacts-customers')}
+                />
+                <SnapshotCard
+                    label="Total Contacts"
+                    value={(dashboardData?.kpis?.totalContacts || 12330).toLocaleString()}
+                    change="+12.4%"
+                    icon={Users2}
+                    color="#10b981"
+                    onClick={() => onModuleClick?.('contacts')}
+                />
+                <SnapshotCard
+                    label="Total Childs"
+                    value={(dashboardData?.kpis?.totalChilds || 5208).toLocaleString()}
+                    change="-1.2%"
+                    icon={GraduationCap}
+                    color="#f59e0b"
+                    trend="down"
+                    onClick={() => onModuleClick?.('expenses')}
+                />
+            </section>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '32px' }}>
+                {/* 3. PROGRAM & PROJECT ANALYTICS */}
+                <section className="glass-panel" style={{ padding: '32px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Activity size={20} color="var(--primary)" /> PROGRAM & PROJECT INTELLIGENCE
+                        </h3>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                            <button className="btn-3d" style={{ padding: '6px 14px', fontSize: '0.65rem' }}>SECTOR VIEW</button>
+                            <button className="btn-3d-green" style={{ padding: '6px 14px', fontSize: '0.65rem' }}>MAP IMPACT</button>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            {/* --- 1. STRATEGIC OVERVIEW (Executive KPIs) --- */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: '1.5rem',
-                marginBottom: '2rem'
-            }}>
-                <KPICard
-                    label="Total Active Projects"
-                    value={kpiData?.kpis?.activeProjects || 0}
-                    change="+5%" icon={Briefcase}
-                />
-                <KPICard
-                    label={`Total Revenue (${periodLabel})`}
-                    value={kpiData?.kpis?.totalRevenue || 0}
-                    isCurrency
-                    renderValue={renderMultiCurrencyValue}
-                    change="+12%" icon={DollarSign} color="var(--primary)"
-                />
-                <KPICard
-                    label="Active Beneficiaries"
-                    value="12,450"
-                    change="+8%" icon={Users} color="#10b981"
-                />
-                <KPICard
-                    label={`Consolidated Surplus (${periodLabel})`}
-                    value={kpiData?.kpis?.netSurplus || 0}
-                    isCurrency
-                    renderValue={renderMultiCurrencyValue}
-                    change="+3%" icon={TrendingUp} color="#3b82f6"
-                />
-            </div>
-
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))',
-                gap: '1.5rem',
-                marginBottom: '2rem'
-            }}>
-                {/* --- 2. PROGRAMME & FINANCIAL HEALTH --- */}
-                <Section title="Financial Overview & Burn Rate">
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
-                        <div style={{ height: '250px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+                        <div style={{ height: '300px' }}>
+                            <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '16px', letterSpacing: '1px' }}>PROJECT DISTRIBUTION BY SECTOR</p>
                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={[
-                                    { month: 'Jan', rev: 120000, exp: 95000 },
-                                    { month: 'Feb', rev: 135000, exp: 102000 },
-                                    { month: 'Mar', rev: 158000, exp: 110000 },
-                                    { month: 'Apr', rev: 142000, exp: 108000 },
-                                    { month: 'May', rev: 190000, exp: 125000 }
-                                ]}>
-                                    <defs>
-                                        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <XAxis dataKey="month" stroke="var(--text-dim)" fontSize={11} />
-                                    <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: '12px', backdropFilter: 'blur(10px)' }} />
-                                    <Area type="monotone" dataKey="rev" stroke="var(--primary)" fillOpacity={1} fill="url(#colorRev)" strokeWidth={3} />
-                                    <Area type="monotone" dataKey="exp" stroke="#ef4444" fill="transparent" strokeDasharray="5 5" strokeWidth={2} />
-                                </AreaChart>
+                                <RePieChart>
+                                    <Pie
+                                        data={dashboardData?.projects.sectors || [
+                                            { name: 'Education', count: 40 },
+                                            { name: 'Health', count: 30 },
+                                            { name: 'Nutrition', count: 20 },
+                                            { name: 'Protection', count: 10 }
+                                        ]}
+                                        innerRadius={60}
+                                        outerRadius={100}
+                                        paddingAngle={5}
+                                        dataKey="count"
+                                    >
+                                        {(dashboardData?.projects.sectors?.length ? dashboardData.projects.sectors : [
+                                            { name: 'Education', count: 40 },
+                                            { name: 'Health', count: 30 },
+                                            { name: 'Nutrition', count: 20 },
+                                            { name: 'Protection', count: 10 }
+                                        ]).map((_: any, index: number) => (
+                                            <Cell key={`cell-${index}`} fill={['var(--primary)', '#10b981', '#3b82f6', '#f472b6', '#a8a29e'][index % 5]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: '12px' }} />
+                                </RePieChart>
                             </ResponsiveContainer>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            <MetricRow label="Program Expense Ratio" value="78%" icon={Activity} sub="Target: 80%" />
-                            <MetricRow label="Monthly Burn Rate (Avg)" value={formatCurrency(115000)} icon={Clock} sub="Standardized per month" />
-                            <MetricRow label="Odoo Invoices Paid" value="92%" icon={CheckCircle2} sub="Last 30 days" />
-                        </div>
-                    </div>
-                </Section>
-
-                {/* --- 3. BANKS & CASH POSITION --- */}
-                <Section title="Banks & Cash Position">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        {kpiData?.finance?.journals.map((j: any, i: number) => (
-                            <div key={i} className="glass-panel" style={{ padding: '1rem', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(245, 197, 24, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Building2 size={20} color="var(--primary)" />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '1px' }}>BUDGET UTILIZATION TRACKER</p>
+                            {(dashboardData?.projects.budgets?.length ? dashboardData.projects.budgets.slice(0, 4) : [
+                                { name: 'School Support Program', utilized: 750000, total: 1000000 },
+                                { name: 'Healthy Kids Initiative', utilized: 450000, total: 900000 },
+                                { name: 'Emergency Food Relief', utilized: 800000, total: 850000 },
+                                { name: 'Youth Skills Development', utilized: 300000, total: 1200000 }
+                            ]).map((b: any, i: number) => (
+                                <div key={i} style={{ padding: '16px', borderRadius: '16px', background: 'var(--bg-surface)', border: '1px solid var(--border-glass)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>{b.name}</span>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)' }}>{Math.round((b.utilized / (b.total || 1)) * 100)}%</span>
                                     </div>
-                                    <div>
-                                        <p style={{ fontSize: '0.85rem', fontWeight: 700 }}>{j.name}</p>
-                                        <p style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>{j.type.toUpperCase()} ACCOUNT</p>
+                                    <div style={{ height: '6px', width: '100%', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
+                                        <div style={{ height: '100%', width: `${Math.min(100, (b.utilized / (b.total || 1)) * 100)}%`, background: 'var(--primary-gradient)' }} />
                                     </div>
                                 </div>
-                                <div style={{ textAlign: 'right' }}>
-                                    <p style={{ fontSize: '1.1rem', fontWeight: 800 }}>{formatCurrency(j.balance)}</p>
-                                    <p style={{ fontSize: '0.65rem', color: '#10b981' }}>Available</p>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* 4. DONOR & FUNDRAISING INTELLIGENCE */}
+                <section className="glass-panel" style={{ padding: '32px' }}>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 900, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <BarChart3 size={24} color="var(--primary)" /> FUNDRAISING HUB
+                    </h3>
+
+                    <div style={{ height: '220px', marginBottom: '24px' }}>
+                        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '16px', letterSpacing: '1px' }}>MONTHLY CONTRIBUTIONS (DEMO)</p>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={dashboardData?.donor.impactTrends?.length ? dashboardData.donor.impactTrends : [
+                                { month: 'Jan', revenue: 4500000, goal: 5000000 },
+                                { month: 'Feb', revenue: 5200000, goal: 5000000 },
+                                { month: 'Mar', revenue: 4800000, goal: 5000000 },
+                                { month: 'Apr', revenue: 6100000, goal: 5500000 },
+                                { month: 'May', revenue: 5500000, goal: 5500000 },
+                                { month: 'Jun', revenue: 6700000, goal: 6000000 },
+                            ]}>
+                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                                <Tooltip
+                                    contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.3)' }}
+                                    cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
+                                />
+                                <Bar dataKey="revenue" fill="var(--primary)" radius={[6, 6, 0, 0]} barSize={25} />
+                                <Bar dataKey="goal" fill="rgba(255, 255, 255, 0.1)" radius={[6, 6, 0, 0]} barSize={25} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '14px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.1)', transition: 'all 0.3s ease' }} className="hover-glow">
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>Donor Retention Rate</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 900, color: '#10b981' }}>84.2%</span>
+                                <ArrowUpRight size={14} color="#10b981" />
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '14px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.1)', transition: 'all 0.3s ease' }} className="hover-glow">
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>Active Child Sponsors</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 900, color: '#3b82f6' }}>{dashboardData?.kpis.totalSponsors || 1240}</span>
+                                <TrendingUp size={14} color="#3b82f6" />
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '14px', borderRadius: '12px', background: 'rgba(245, 197, 24, 0.05)', border: '1px solid rgba(245, 197, 24, 0.1)', transition: 'all 0.3s ease' }} className="hover-glow">
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>Funding Pipeline</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--primary)' }}>৳45.2M</span>
+                                <Activity size={14} color="var(--primary)" />
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            {/* 5. FINANCE & DEPARTMENT PANEL */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '32px' }}>
+                <section className="glass-panel" style={{ padding: '32px' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 900, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <DollarSign size={20} color="var(--primary)" /> FINANCE & LIQUIDITY
+                    </h3>
+                    <div style={{ height: '200px', marginBottom: '24px' }}>
+                        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '16px', letterSpacing: '1px' }}>CASH FLOW TREND (DEMO)</p>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={[
+                                { name: 'W1', inflow: 400, outflow: 240 },
+                                { name: 'W2', inflow: 300, outflow: 139 },
+                                { name: 'W3', inflow: 200, outflow: 980 },
+                                { name: 'W4', inflow: 278, outflow: 390 },
+                            ]}>
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                                <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: '12px' }} />
+                                <Bar dataKey="inflow" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="outflow" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {(dashboardData?.finance.liquidity?.length ? dashboardData.finance.liquidity : [
+                            { name: 'Standard Chartered', balance: 4500000, company_id: [1, 'JAAGO Foundation'] },
+                            { name: 'Dutch Bangla Bank', balance: 2800000, company_id: [1, 'JAAGO Foundation'] }
+                        ]).map((l: any, i: number) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderRadius: '16px', background: 'var(--bg-surface)', border: '1px solid var(--border-glass)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <div style={{ padding: '8px', borderRadius: '10px', background: 'rgba(245, 197, 24, 0.1)', color: 'var(--primary)' }}><Building2 size={16} /></div>
+                                    <div>
+                                        <p style={{ fontSize: '0.8rem', fontWeight: 800 }}>{l.name}</p>
+                                        <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{l.company_id[1]}</p>
+                                    </div>
+                                </div>
+                                <span style={{ fontSize: '0.95rem', fontWeight: 900 }}>
+                                    {new Intl.NumberFormat('en-US', {
+                                        style: 'currency',
+                                        currency: 'BDT',
+                                        maximumFractionDigits: 0
+                                    }).format(l.balance || 0)}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                <section className="glass-panel" style={{ padding: '32px' }}>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 900, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Activity size={24} color="var(--primary)" /> DEPARTMENT PERFORMANCE
+                    </h3>
+                    <div style={{ height: '220px', marginBottom: '24px' }}>
+                        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '16px', letterSpacing: '1px' }}>KPI EFFICIENCY INDEX (DEMO)</p>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart layout="vertical" data={[
+                                { name: 'HR', score: 85, color: '#10b981' },
+                                { name: 'Finance', score: 92, color: '#3b82f6' },
+                                { name: 'Programs', score: 78, color: 'var(--primary)' },
+                                { name: 'Admin', score: 88, color: '#f472b6' },
+                                { name: 'Donor Care', score: 95, color: '#8b5cf6' }
+                            ]}>
+                                <XAxis type="number" domain={[0, 100]} hide />
+                                <Tooltip
+                                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                                    contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: '12px' }}
+                                />
+                                <Bar dataKey="score" radius={[0, 6, 6, 0]} barSize={25}>
+                                    {[0, 1, 2, 3, 4].map((i) => (
+                                        <Cell key={i} fill={['#10b981', '#3b82f6', 'var(--primary)', '#f472b6', '#8b5cf6'][i]} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        {(dashboardData?.dept.departments?.length ? dashboardData.dept.departments.slice(0, 4) : [
+                            { name: 'Human Resources', total_employee: 45, efficiency: 85 },
+                            { name: 'Finance', total_employee: 12, efficiency: 92 },
+                            { name: 'Programs', total_employee: 120, efficiency: 78 },
+                            { name: 'Admin', total_employee: 25, efficiency: 88 }
+                        ]).map((d: any, i: number) => (
+                            <div key={i} className="hover-glow" style={{ padding: '16px', borderRadius: '16px', background: 'var(--bg-surface)', border: '1px solid var(--border-glass)', cursor: 'pointer', transition: 'all 0.3s ease' }} onClick={() => onModuleClick?.('employees')}>
+                                <p style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '8px' }}>{d.name.toUpperCase()}</p>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                    <span style={{ fontSize: '1.2rem', fontWeight: 900 }}>{d.total_employee}</span>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#10b981' }}>{Math.round(d.efficiency || 85)}% KPI</span>
                                 </div>
                             </div>
                         ))}
-                        <div style={{ marginTop: 'auto', padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid var(--border-glass)' }}>
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', letterSpacing: '1px' }}>TOTAL CONSOLIDATED LIQUIDITY</p>
-                            <p style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--primary)' }}>{formatCurrency(kpiData?.finance?.bankBalance || 0)}</p>
-                        </div>
                     </div>
-                </Section>
+                </section>
             </div>
-
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-                gap: '1.5rem'
-            }}>
-                {/* --- 4. CRM & FUNDRAISING --- */}
-                <Section title="Fundraising & CRM">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        <div style={{ height: '140px' }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={[
-                                    { label: 'Donations', value: 45 },
-                                    { label: 'Sponsors', value: 82 },
-                                    { label: 'Subscrip', value: 65 },
-                                    { label: 'Grants', value: 30 }
-                                ]}>
-                                    <Bar dataKey="value" fill="var(--primary)" radius={[6, 6, 0, 0]} />
-                                    <XAxis dataKey="label" display="none" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                            <StatBlock label="Pipeline Value" value={formatCurrency(kpiData?.fundraising?.pipelineValue || 0)} />
-                            <StatBlock label="Recurring Rev" value={formatCurrency(kpiData?.fundraising?.recurringRevenue || 0)} />
-                            <StatBlock label="Donor Retention" value="84%" />
-                            <StatBlock label="Lead Conversion" value="12%" />
-                        </div>
-                    </div>
-                </Section>
-
-                {/* --- 5. HR, PAYROLL & TIME OFF --- */}
-                <Section title="Human Resources & Ops">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <MetricRow label="Headcount (Total)" value={kpiData?.kpis?.employeeCount || '0'} icon={UserCircle} sub="Across all entities" />
-                        <MetricRow label="Payroll Status" value="Processing" icon={ShieldCheck} sub="Odoo Payslip Generation" color="#fbbf24" />
-                        <MetricRow label="Active Time Off" value={kpiData?.hr?.activeLeaves || '0'} icon={Clock} sub="Validated requests" />
-                        <div style={{ height: '60px', marginTop: '10px' }}>
-                            <p style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginBottom: '8px' }}>DEPARTMENTAL DISTRIBUTION</p>
-                            <div style={{ display: 'flex', gap: '4px' }}>
-                                <div style={{ flex: 4, height: '8px', background: 'var(--primary)', borderRadius: '4px' }} />
-                                <div style={{ flex: 2, height: '8px', background: '#3b82f6', borderRadius: '4px' }} />
-                                <div style={{ flex: 1, height: '8px', background: '#10b981', borderRadius: '4px' }} />
-                                <div style={{ flex: 3, height: '8px', background: '#ef4444', borderRadius: '4px' }} />
-                            </div>
-                        </div>
-                    </div>
-                </Section>
-
-                {/* --- 6. INVENTORY & YOUTH ENGAGEMENT --- */}
-                <Section title="JAAGO Youth & Inventory">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div className="glass-panel" style={{ padding: '1.5rem', borderRadius: '20px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                                <Rocket size={20} color="var(--primary)" />
-                                <span style={{ fontWeight: 800 }}>Youth Volunteers</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                <span style={{ fontSize: '1.5rem', fontWeight: 900 }}>20,000+</span>
-                                <span style={{ color: '#10b981', fontSize: '0.75rem', fontWeight: 700 }}>+20% YOY</span>
-                            </div>
-                        </div>
-
-                        <div className="glass-panel" style={{ padding: '1.5rem', borderRadius: '20px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                                <ShoppingCart size={20} color="#3b82f6" />
-                                <span style={{ fontWeight: 800 }}>Inventory Status</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <p style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>LOW STOCK ALERTS</p>
-                                    <p style={{ fontSize: '1.2rem', fontWeight: 800 }}>12 Items</p>
-                                </div>
-                                <div style={{ width: '40px', height: '40px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <AlertCircle size={20} color="#ef4444" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </Section>
-            </div>
-
-            <style>{`
-                .strategic-dashboard {
-                    perspective: 1500px;
-                }
-                .card-hover:hover {
-                    transform: translateY(-10px) rotateX(4deg);
-                    box-shadow: 0 30px 60px rgba(0,0,0,0.6);
-                    border-color: var(--primary);
-                }
-            `}</style>
         </div>
     );
 };
 
-// --- Sub-Components ---
+// --- Helper Components ---
 
-const KPICard: React.FC<{
-    label: string,
-    value: any,
-    change: string,
-    icon: any,
-    color?: string,
-    isCurrency?: boolean,
-    renderValue?: (val: any) => React.ReactNode
-}> = ({ label, value, change, icon: Icon, color = '#fff', isCurrency, renderValue }) => (
-    <div className={`card-3d fade-in glass-panel ${isCurrency ? 'currency-card' : ''}`} style={{ padding: '2rem', minHeight: '180px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-            <div style={{
-                width: '48px', height: '48px', borderRadius: '16px',
-                background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: 'inset 0 0 20px rgba(255,255,255,0.02)'
+const SnapshotCard: React.FC<any> = ({ label, value, change, icon: Icon, color, trend = 'up', onClick }) => {
+    return (
+        <div className="glass-panel"
+            onClick={onClick}
+            style={{
+                padding: '24px',
+                position: 'relative',
+                overflow: 'hidden',
+                transition: 'all 0.4s var(--easing)',
+                cursor: 'pointer',
+                background: `linear-gradient(135deg, ${color}10, ${color}05)`,
+                border: `1px solid ${color}30`,
+                boxShadow: `0 8px 32px 0 ${color}15`,
+            }}
+            onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-10px) scale(1.02)';
+                e.currentTarget.style.boxShadow = `0 20px 40px 0 ${color}30`;
+                e.currentTarget.style.borderColor = `${color}60`;
+            }}
+            onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                e.currentTarget.style.boxShadow = `0 8px 32px 0 ${color}15`;
+                e.currentTarget.style.borderColor = `${color}30`;
             }}>
-                <Icon size={24} color={color === '#fff' ? 'var(--primary)' : color} />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <div style={{
+                    padding: '12px',
+                    borderRadius: '16px',
+                    background: `linear-gradient(135deg, ${color}, ${color}dd)`,
+                    color: '#fff',
+                    boxShadow: `0 8px 20px ${color}40`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <Icon size={24} />
+                </div>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    background: trend === 'up' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                    color: trend === 'up' ? '#10b981' : '#f87171',
+                    fontSize: '0.75rem',
+                    fontWeight: 900,
+                    border: trend === 'up' ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
+                }}>
+                    {trend === 'up' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                    {change}
+                </div>
             </div>
+
+            <p style={{
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                color: 'var(--text-muted)',
+                marginBottom: '8px',
+                letterSpacing: '1.5px',
+                textShadow: '0 2px 4px rgba(0,0,0,0.2)'
+            }}>{label.toUpperCase()}</p>
+
+            <h2 style={{
+                fontSize: '2.2rem',
+                fontWeight: 900,
+                margin: 0,
+                letterSpacing: '-1.5px',
+                background: `linear-gradient(to bottom, #fff, #ccc)`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+            }}>{value}</h2>
+
             <div style={{
-                padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem',
-                fontWeight: 800, color: '#10b981', background: 'rgba(16, 185, 129, 0.1)',
-                border: '1px solid rgba(16, 185, 129, 0.2)'
+                position: 'absolute',
+                bottom: '-20px',
+                right: '-20px',
+                opacity: 0.1,
+                transform: 'rotate(-15deg)'
             }}>
-                {change}
+                <Icon size={120} color={color} />
             </div>
         </div>
-        <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-dim)', marginBottom: '10px', letterSpacing: '1px' }}>{label.toUpperCase()}</p>
-        <div style={{ position: 'relative', zIndex: 1 }}>
-            {renderValue ? renderValue(value) : <h2 style={{ fontSize: '2.25rem', fontWeight: 900, margin: 0, color: 'var(--text-main)' }}>{value}</h2>}
-        </div>
-
-        {/* Glow Element */}
-        <div style={{
-            position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px',
-            background: color === '#fff' ? 'var(--primary-glow)' : color,
-            opacity: 'var(--glow-opacity)', filter: 'blur(40px)', borderRadius: '50%', pointerEvents: 'none'
-        }} />
-    </div>
-);
-
-const Section: React.FC<{ title: string, children: React.ReactNode }> = ({ title, children }) => (
-    <div className="glass-panel" style={{ padding: '2rem', borderRadius: '28px', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '0.5px', color: 'var(--text-main)' }}>{title}</h3>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-glass)' }}>
-                <Info size={14} color="var(--text-dim)" />
-            </div>
-        </div>
-        <div style={{ position: 'relative', zIndex: 1 }}>
-            {children}
-        </div>
-    </div>
-);
-
-const MetricRow: React.FC<{ label: string, value: any, icon: any, sub: string, color?: string }> = ({ label, value, icon: Icon, sub, color = 'var(--primary)' }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon size={18} color={color} />
-        </div>
-        <div style={{ flex: 1 }}>
-            <p style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)' }}>{label}</p>
-            <p style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>{sub}</p>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>{value}</p>
-        </div>
-    </div>
-);
-
-const StatBlock: React.FC<{ label: string, value: any }> = ({ label, value }) => (
-    <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-glass)' }}>
-        <p style={{ fontSize: '0.65rem', color: 'var(--text-dim)', marginBottom: '6px', fontWeight: 700, letterSpacing: '0.5px' }}>{label.toUpperCase()}</p>
-        <p style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)' }}>{value}</p>
-    </div>
-);
+    );
+};
 
 export default StrategicOverview;

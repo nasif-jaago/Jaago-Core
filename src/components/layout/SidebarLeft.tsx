@@ -3,7 +3,7 @@ import {
     LayoutDashboard, Users, ShieldCheck, Baby, Palette,
     Wallet, Briefcase, Handshake, TrendingUp, Presentation,
     Layers, UserCheck, Zap, BarChart, HardDrive, Settings,
-    MessageSquare, HelpCircle, LogIn, LogOut
+    HelpCircle, LogOut, Mail, Database, Plug, Server, Brain
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -12,6 +12,7 @@ interface SidebarLeftProps {
     setActiveTab: (tab: string) => void;
     onLogoClick?: () => void;
     user: any;
+    isCollapsed?: boolean;
 }
 
 const navItems = [
@@ -31,14 +32,18 @@ const navItems = [
     { id: 'MEAL', label: 'MEAL (Monitoring & Learning)', icon: BarChart, section: 'DEPARTMENTS', appId: 'meal' },
     { id: 'IT', label: 'IT', icon: HardDrive, section: 'DEPARTMENTS', appId: 'it_dashboard' },
 
-    { id: 'Messages', label: 'Messages', icon: MessageSquare, section: 'SETTINGS' },
+    { id: 'Emails Log', label: 'Emails Log', icon: Mail, section: 'SETTINGS' },
+    { id: 'API', label: 'API Settings', icon: Database, section: 'SETTINGS' },
+    { id: 'Connectors', label: 'Connectors', icon: Plug, section: 'SETTINGS' },
+    { id: 'Email Server', label: 'Email Server', icon: Server, section: 'SETTINGS' },
+    { id: 'AI Agent', label: 'AI Agent', icon: Brain, section: 'SETTINGS' },
     { id: 'Admin', label: 'System Admin', icon: Settings, section: 'SETTINGS', isAdminOnly: true },
     { id: 'Help', label: 'Help Centre', icon: HelpCircle, section: 'SETTINGS' },
 ];
 
 import JaagoLogo from '../shared/JaagoLogo';
 
-const SidebarLeft: React.FC<SidebarLeftProps> = ({ activeTab, setActiveTab, onLogoClick, user }) => {
+const SidebarLeft: React.FC<SidebarLeftProps> = ({ activeTab, setActiveTab, onLogoClick, user, isCollapsed }) => {
     const role = user?.user_metadata?.role || 'user';
     const appAccess = user?.user_metadata?.app_access || [];
 
@@ -49,103 +54,85 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({ activeTab, setActiveTab, onLo
         if (item.section === 'DEPARTMENTS' && item.appId) {
             return appAccess.includes(item.appId);
         }
-        return true; // Default visible for other settings/dashboard items
+        return true;
     };
 
     const filteredNavItems = navItems.filter(isVisible);
-
     const { signOut } = useAuth();
 
     return (
-        <aside className="sidebar-left" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <div style={{ padding: '10px 0 0 10px' }}>
-                <JaagoLogo onClick={onLogoClick} scale={0.7} />
+        <aside className="sidebar-left" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            transition: 'width 0.3s'
+        }}>
+            <div style={{ padding: isCollapsed ? '10px 0' : '10px 0 0 10px', textAlign: 'center' }}>
+                <JaagoLogo onClick={onLogoClick} scale={isCollapsed ? 0.4 : 0.7} />
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '0 10px 20px', scrollbarWidth: 'none' }}>
-                <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.75rem', letterSpacing: '1px' }}>MAIN</p>
-                {filteredNavItems.filter(i => i.section === 'DASHBOARD').map(item => (
-                    <div
-                        key={item.id}
-                        onClick={() => setActiveTab(item.id)}
-                        className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-                    >
-                        <item.icon size={18} />
-                        <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{item.label}</span>
-                    </div>
-                ))}
+            <div style={{ flex: 1, overflowY: 'auto', padding: isCollapsed ? '0 5px' : '0 10px 20px', scrollbarWidth: 'none' }}>
+                {['DASHBOARD', 'DEPARTMENTS', 'SETTINGS'].map(section => {
+                    const sectionItems = filteredNavItems.filter(i => i.section === section);
+                    if (sectionItems.length === 0) return null;
 
-                {filteredNavItems.some(i => i.section === 'DEPARTMENTS') && (
-                    <>
-                        <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.75rem', marginTop: '1.5rem', letterSpacing: '1px' }}>DEPARTMENTS</p>
-                        {filteredNavItems.filter(i => i.section === 'DEPARTMENTS').map(item => (
-                            <div
-                                key={item.id}
-                                onClick={() => setActiveTab(item.id)}
-                                className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-                                style={{ padding: '8px 12px' }}
-                            >
-                                <item.icon size={16} />
-                                <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>{item.label}</span>
-                            </div>
-                        ))}
-                    </>
-                )}
-
-                <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.75rem', marginTop: '1.5rem', letterSpacing: '1px' }}>SETTINGS</p>
-                {filteredNavItems.filter(i => i.section === 'SETTINGS').map(item => (
-                    <div
-                        key={item.id}
-                        onClick={() => {
-                            if (item.id === 'Help') {
-                                window.location.href = 'https://www.odoo.com/help-form';
-                            } else {
-                                setActiveTab(item.id);
-                            }
-                        }}
-                        className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-                    >
-                        <item.icon size={18} />
-                        <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{item.label}</span>
-                    </div>
-                ))}
+                    return (
+                        <div key={section} style={{ marginBottom: isCollapsed ? '10px' : '20px' }}>
+                            {!isCollapsed && <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.75rem', marginTop: section !== 'DASHBOARD' ? '1.5rem' : '0', letterSpacing: '1px' }}>{section}</p>}
+                            {sectionItems.map(item => (
+                                <div
+                                    key={item.id}
+                                    onClick={() => {
+                                        if (item.id === 'Help') {
+                                            window.location.href = 'https://www.odoo.com/help-form';
+                                        } else {
+                                            setActiveTab(item.id);
+                                        }
+                                    }}
+                                    className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
+                                    style={{
+                                        padding: isCollapsed ? '10px' : '8px 12px',
+                                        justifyContent: isCollapsed ? 'center' : 'flex-start',
+                                        position: 'relative'
+                                    }}
+                                    title={isCollapsed ? item.label : ''}
+                                >
+                                    <item.icon size={isCollapsed ? 20 : 18} />
+                                    {!isCollapsed && <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{item.label}</span>}
+                                </div>
+                            ))}
+                        </div>
+                    );
+                })}
             </div>
 
             <div style={{ padding: '20px 10px', borderTop: '1px solid var(--border-glass)' }}>
-                {/* Action Buttons */}
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                    <button
-                        style={{
-                            flex: 1, height: '40px', borderRadius: '10px', background: 'var(--input-bg)',
-                            border: '1px solid var(--border)', display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', color: 'var(--text-muted)', cursor: 'pointer'
-                        }}
-                        title="Sign In / Switch Account"
-                    >
-                        <LogIn size={18} />
-                    </button>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexDirection: isCollapsed ? 'column' : 'row' }}>
                     <button
                         onClick={() => signOut()}
                         style={{
-                            flex: 1, height: '40px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.1)',
+                            width: '100%', height: '40px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.1)',
                             border: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', alignItems: 'center',
                             justifyContent: 'center', color: '#ef4444', cursor: 'pointer'
                         }}
                         title="Sign Out"
                     >
                         <LogOut size={18} />
+                        {!isCollapsed && <span style={{ marginLeft: '8px' }}>Logout</span>}
                     </button>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)' }}>
-                    <img src={`https://ui-avatars.com/api/?name=${user?.email?.split('@')[0] || 'User'}&background=f5c518&color=000`} style={{ width: '32px', height: '32px', borderRadius: '8px' }} alt="Avatar" />
-                    <div>
-                        <p style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {user?.user_metadata?.name || user?.email?.split('@')[0]}
-                        </p>
-                        <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>{role}</p>
+                {!isCollapsed && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)' }}>
+                        <img src={`https://ui-avatars.com/api/?name=${user?.email?.split('@')[0] || 'User'}&background=f5c518&color=000`} style={{ width: '32px', height: '32px', borderRadius: '8px' }} alt="Avatar" />
+                        <div style={{ overflow: 'hidden' }}>
+                            <p style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {user?.user_metadata?.name || user?.email?.split('@')[0]}
+                            </p>
+                            <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>{role}</p>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </aside>
     );

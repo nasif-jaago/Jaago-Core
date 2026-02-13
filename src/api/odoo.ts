@@ -19,6 +19,7 @@ export interface OdooResponse<T> {
     success: boolean;
     data?: T;
     error?: string;
+    code?: string;
     syncTime: string;
 }
 
@@ -93,7 +94,7 @@ export const odooCall = async (model: string, method: string, args: any[] = [], 
         });
 
         const result = await response.json();
-        if (result.error) throw new Error(result.error.data.message || result.error.message);
+        if (result.error) throw new Error(result.error.data?.message || result.error.message);
         return result.result;
     } catch (error) {
         console.error('Odoo API Error:', error);
@@ -187,9 +188,12 @@ export const fetchRecords = async (model: string, fields: string[] = [], domain:
 
 export const getCount = async (model: string, domain: any[] = []): Promise<number> => {
     try {
-        return await odooCall(model, 'search_count', [domain]);
-    } catch (err) {
-        return 0;
+        const count = await odooCall(model, 'search_count', [domain]);
+        // console.log(`Odoo Count [${model}]:`, count);
+        return count;
+    } catch (err: any) {
+        console.error(`Odoo Count Error [${model}]:`, err.message || err);
+        throw err; // Throw so caller can handle fallback
     }
 };
 

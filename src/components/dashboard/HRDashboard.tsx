@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { fetchRecords, getCount } from '../../api/odoo';
+import { fetchRecords, getCount, fetchCompanies } from '../../api/odoo';
 import {
     Users, Calendar, Clock, UserX, AlertCircle,
-    ChevronRight, MoreHorizontal, FileText, Download,
-    Printer, Eye, Search, Calendar as CalendarIcon,
-    CheckCircle2, ChevronLeft, User, Cake, Trophy, UserPlus, Star, BarChart3
+    Printer, Calendar as CalendarIcon, FileText, Download,
+    CheckCircle2, ChevronLeft, User, Cake, Trophy, UserPlus, Star, BarChart3,
+    Building2, Filter, X, PieChart as PieChartIcon
 } from 'lucide-react';
+import {
+    PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend
+} from 'recharts';
 
 const HRDashboard: React.FC = () => {
     const [stats, setStats] = useState({
@@ -14,17 +17,31 @@ const HRDashboard: React.FC = () => {
         onLeave: 0,
         absent: 0
     });
-    const [monthlyData, setMonthlyData] = useState<number[]>(Array(12).fill(0));
-    const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
     const [payrollStatus, setPayrollStatus] = useState({ pending: 0, completed: 0 });
-    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('Overview');
     const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
+    const [dateRangeFilter, setDateRangeFilter] = useState({
+        start: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
+        end: new Date().toISOString().split('T')[0]
+    });
+
+    // Company Filter States
+    const [companies, setCompanies] = useState<any[]>([]);
+    const [selectedCompany, setSelectedCompany] = useState<number | null>(null);
+    const [showCompanyFilter, setShowCompanyFilter] = useState(false);
 
     // New Data States
     const [birthdays, setBirthdays] = useState<{ today: any[], month: any[], count: number }>({ today: [], month: [], count: 0 });
     const [anniversaries, setAnniversaries] = useState<{ today: any[], month: any[], count: number }>({ today: [], month: [], count: 0 });
     const [newJoiners, setNewJoiners] = useState<{ today: any[], month: any[], count: number }>({ today: [], month: [], count: 0 });
+
+    // Gender Distribution State
+    const [topLateEmployees, setTopLateEmployees] = useState<any[]>([]);
+    const [genderDistribution, setGenderDistribution] = useState({ male: 0, female: 0, other: 0 });
+    const [publicHolidays, setPublicHolidays] = useState<any[]>([]);
+    const [topOnTimeEmployees, setTopOnTimeEmployees] = useState<any[]>([]);
+    const [attendancePeriod, setAttendancePeriod] = useState<'Today' | 'Yesterday' | 'MTD'>('MTD');
+    const [showAttendanceDetails, setShowAttendanceDetails] = useState<{ type: 'ontime' | 'late' | null, employee: any | null }>({ type: null, employee: null });
 
     // Drilldown State
     const [drilldown, setDrilldown] = useState<{
@@ -40,34 +57,25 @@ const HRDashboard: React.FC = () => {
     const [reportLoading, setReportLoading] = useState(false);
 
     useEffect(() => {
+        loadCompanies();
+    }, []);
+
+    useEffect(() => {
         loadDashboardData();
-        loadMonthlyAnalytics();
         loadLifecycleEvents();
-    }, [dateFilter]);
+        loadGenderDistribution();
+        loadPublicHolidays();
+        loadTopAttendanceEmployees();
+    }, [dateFilter, selectedCompany, dateRangeFilter, attendancePeriod]);
 
-    const loadMonthlyAnalytics = async () => {
-        try {
-            const currentYear = new Date(dateFilter).getFullYear();
-            const months = Array.from({ length: 12 }, (_, i) => {
-                const start = `${currentYear}-${String(i + 1).padStart(2, '0')}-01 00:00:00`;
-                const end = `${currentYear}-${String(i + 1).padStart(2, '0')}-31 23:59:59`;
-                return getCount('hr.attendance', [['check_in', '>=', start], ['check_in', '<=', end]]);
-            });
 
-            const counts = await Promise.all(months);
-            setMonthlyData(counts);
-        } catch (error) {
-            console.error("Monthly analytics fetch failed", error);
-        }
-    };
 
     const loadLifecycleEvents = async () => {
         try {
-            const filterDate = new Date(dateFilter);
-            const currentMonth = filterDate.getMonth() + 1;
-            const currentDay = filterDate.getDate();
-            const monthStr = String(currentMonth).padStart(2, '0');
-            const dayStr = String(currentDay).padStart(2, '0');
+            const dateParts = dateFilter.split('-');
+            const currentYear = dateParts[0];
+            const monthStr = dateParts[1];
+            const dayStr = dateParts[2];
 
             // Fetch all active employees for processing
             const res = await fetchRecords('hr.employee',
@@ -92,7 +100,7 @@ const HRDashboard: React.FC = () => {
                 setBirthdays({ today: bdayToday, month: bdayMonth, count: bdayMonth.length });
 
                 // 2. Joiners / Anniversaries (Using x_studio_joining_date)
-                const joinToday = all.filter((e: any) => e.x_studio_joining_date && e.x_studio_joining_date === filterDate.toISOString().split('T')[0]);
+                const joinToday = all.filter((e: any) => e.x_studio_joining_date && e.x_studio_joining_date === dateFilter);
                 const joinMonth = sortByDay(all.filter((e: any) => e.x_studio_joining_date && e.x_studio_joining_date.includes(`-${monthStr}-`)), 'x_studio_joining_date');
                 setNewJoiners({ today: joinToday, month: joinMonth, count: joinMonth.length });
 
@@ -100,7 +108,7 @@ const HRDashboard: React.FC = () => {
                     if (!e.x_studio_joining_date) return false;
                     const dateParts = e.x_studio_joining_date.split('-');
                     const isSameMDP = dateParts[1] === monthStr && dateParts[2] === dayStr;
-                    const isNew = dateParts[0] === filterDate.getFullYear().toString();
+                    const isNew = dateParts[0] === currentYear;
                     return isSameMDP && !isNew;
                 });
 
@@ -108,7 +116,7 @@ const HRDashboard: React.FC = () => {
                     if (!e.x_studio_joining_date) return false;
                     const dateParts = e.x_studio_joining_date.split('-');
                     const isSameMonth = dateParts[1] === monthStr;
-                    const isNew = dateParts[0] === filterDate.getFullYear().toString();
+                    const isNew = dateParts[0] === currentYear;
                     return isSameMonth && !isNew;
                 }), 'x_studio_joining_date');
 
@@ -119,11 +127,24 @@ const HRDashboard: React.FC = () => {
         }
     };
 
+    const loadCompanies = async () => {
+        try {
+            const result = await fetchCompanies();
+            if (result.success && result.data) {
+                setCompanies(result.data);
+            }
+        } catch (error) {
+            console.error('Failed to load companies:', error);
+        }
+    };
+
     const loadDashboardData = async () => {
-        setLoading(true);
         try {
             const startOfDay = `${dateFilter} 00:00:00`;
             const endOfDay = `${dateFilter} 23:59:59`;
+
+            // Add company filter to domain if selected
+            const companyDomain = selectedCompany ? [['company_id', '=', selectedCompany]] : [];
 
             const [
                 totalEmp,
@@ -133,16 +154,17 @@ const HRDashboard: React.FC = () => {
                 payslipTotal,
                 payslipDone
             ] = await Promise.all([
-                getCount('hr.employee', [['active', '=', true]]),
-                getCount('hr.attendance', [['check_in', '>=', startOfDay], ['check_in', '<=', endOfDay]]),
+                getCount('hr.employee', [...companyDomain, ['active', '=', true]]),
+                getCount('hr.attendance', [...companyDomain, ['check_in', '>=', startOfDay], ['check_in', '<=', endOfDay]]),
                 getCount('hr.leave', [
+                    ...companyDomain,
                     ['state', 'in', ['validate', 'validate1']],
                     ['date_from', '<=', endOfDay],
                     ['date_to', '>=', startOfDay]
                 ]),
-                fetchRecords('hr.leave', ['employee_id', 'date_from', 'state'], [['state', '=', 'confirm']], 5),
-                getCount('hr.payslip', []),
-                getCount('hr.payslip', [['state', '=', 'done']])
+                fetchRecords('hr.leave', ['employee_id', 'date_from', 'state'], [...companyDomain, ['state', '=', 'confirm']], 5),
+                getCount('hr.payslip', companyDomain),
+                getCount('hr.payslip', [...companyDomain, ['state', '=', 'done']])
             ]);
 
             setStats({
@@ -152,7 +174,7 @@ const HRDashboard: React.FC = () => {
                 absent: Math.max(0, totalEmp - attCount - leaveCount)
             });
 
-            setPendingApprovals(leaveRecords.data || []);
+
 
             const totalP = payslipTotal || 1;
             const doneP = payslipDone || 0;
@@ -163,8 +185,191 @@ const HRDashboard: React.FC = () => {
 
         } catch (error) {
             console.error('Failed to load Odoo HR Dashboard data:', error);
-        } finally {
-            setLoading(false);
+        }
+    };
+
+    const loadGenderDistribution = async () => {
+        try {
+            const companyDomain = selectedCompany ? [['company_id', '=', selectedCompany]] : [];
+            const employees = await fetchRecords('hr.employee', ['sex'], [...companyDomain, ['active', '=', true]], 1000);
+
+            if (employees.success && employees.data) {
+                const distribution = { male: 0, female: 0, other: 0 };
+                employees.data.forEach((emp: any) => {
+                    if (emp.sex === 'male') distribution.male++;
+                    else if (emp.sex === 'female') distribution.female++;
+                    else distribution.other++;
+                });
+                setGenderDistribution(distribution);
+            }
+        } catch (error) {
+            console.error('Failed to load gender distribution:', error);
+        }
+    };
+
+    const loadPublicHolidays = async () => {
+        try {
+            const currentYear = dateFilter.split('-')[0];
+            const startDate = `${currentYear}-01-01`;
+            const endDate = `${currentYear}-12-31`;
+            const companyDomain = selectedCompany ? [['company_id', '=', selectedCompany]] : [];
+
+            // Fetch public holidays (Global leaves, where resource_id is false)
+            const holidaysRes = await fetchRecords(
+                'resource.calendar.leaves',
+                ['name', 'date_from', 'date_to'],
+                [
+                    ['date_from', '>=', startDate],
+                    ['date_from', '<=', endDate],
+                    ['resource_id', '=', false]
+                ],
+                200
+            );
+
+            // Fetch Mandatory Days
+            const mandatoryRes = await fetchRecords(
+                'hr.leave.mandatory.day',
+                ['name', 'start_date', 'end_date'],
+                [
+                    ['start_date', '>=', startDate],
+                    ['start_date', '<=', endDate],
+                    ...companyDomain
+                ],
+                100
+            );
+
+            const normalizedHolidays: any[] = [];
+
+            if (holidaysRes.success && holidaysRes.data) {
+                holidaysRes.data.forEach((h: any) => {
+                    normalizedHolidays.push({
+                        name: h.name,
+                        date: h.date_from,
+                        type: 'HOLIDAY'
+                    });
+                });
+            }
+
+            if (mandatoryRes.success && mandatoryRes.data) {
+                mandatoryRes.data.forEach((m: any) => {
+                    normalizedHolidays.push({
+                        name: m.name,
+                        date: m.start_date,
+                        type: 'MANDATORY'
+                    });
+                });
+            }
+
+            // Sort by date and remove duplicates (holidays might repeat across calendars)
+            const sortedUnique = normalizedHolidays
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                .filter((v, i, a) => a.findIndex(t => (t.name === v.name && t.date.split(' ')[0] === v.date.split(' ')[0])) === i);
+
+            setPublicHolidays(sortedUnique);
+        } catch (error) {
+            console.error('Failed to load public holidays:', error);
+        }
+    };
+
+    const loadTopAttendanceEmployees = async () => {
+        try {
+            let startDate, endDate;
+            const now = new Date();
+
+            const formatDate = (date: Date) => {
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+            };
+
+            if (attendancePeriod === 'Today') {
+                const today = formatDate(now);
+                startDate = `${today} 00:00:00`;
+                endDate = `${today} 23:59:59`;
+            } else if (attendancePeriod === 'Yesterday') {
+                const yesterday = new Date(now);
+                yesterday.setDate(now.getDate() - 1);
+                const yesterdayStr = formatDate(yesterday);
+                startDate = `${yesterdayStr} 00:00:00`;
+                endDate = `${yesterdayStr} 23:59:59`;
+            } else if (attendancePeriod === 'MTD') {
+                const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                startDate = `${formatDate(firstDayOfMonth)} 00:00:00`;
+                endDate = `${formatDate(now)} 23:59:59`;
+            } else {
+                startDate = `${dateRangeFilter.start} 00:00:00`;
+                endDate = `${dateRangeFilter.end} 23:59:59`;
+            }
+
+            const companyDomain = selectedCompany ? [['company_id', '=', selectedCompany]] : [];
+
+            // Fetch all attendance records in the date range
+            const attendances = await fetchRecords(
+                'hr.attendance',
+                ['employee_id', 'check_in', 'check_out'],
+                [...companyDomain, ['check_in', '>=', startDate], ['check_in', '<=', endDate]],
+                1000
+            );
+
+            if (attendances.success && attendances.data) {
+                // Group by employee and calculate on-time vs late metrics
+                const employeeStats: any = {};
+
+                attendances.data.forEach((att: any) => {
+                    const empId = att.employee_id[0];
+                    const empName = att.employee_id[1];
+                    const checkInTime = new Date(att.check_in);
+                    const checkInHour = checkInTime.getHours();
+                    const checkInMinute = checkInTime.getMinutes();
+
+                    if (!employeeStats[empId]) {
+                        employeeStats[empId] = {
+                            id: empId,
+                            name: empName,
+                            onTimeCount: 0,
+                            lateCount: 0,
+                            totalCount: 0
+                        };
+                    }
+
+                    employeeStats[empId].totalCount++;
+
+                    // Consider on-time if check-in is before 9:15 AM
+                    if (checkInHour < 9 || (checkInHour === 9 && checkInMinute <= 15)) {
+                        employeeStats[empId].onTimeCount++;
+                    } else {
+                        employeeStats[empId].lateCount++;
+                    }
+                });
+
+                // Convert to array and sort
+                const statsArray = Object.values(employeeStats);
+
+                // Top 5 on-time (highest on-time percentage)
+                const topOnTime = statsArray
+                    .map((emp: any) => ({
+                        ...emp,
+                        onTimePercentage: (emp.onTimeCount / emp.totalCount) * 100
+                    }))
+                    .sort((a: any, b: any) => b.onTimePercentage - a.onTimePercentage)
+                    .slice(0, 5);
+
+                // Top 5 late (highest late count)
+                const topLate = statsArray
+                    .map((emp: any) => ({
+                        ...emp,
+                        latePercentage: (emp.lateCount / emp.totalCount) * 100
+                    }))
+                    .filter((emp: any) => emp.lateCount > 0)
+                    .sort((a: any, b: any) => b.lateCount - a.lateCount)
+                    .slice(0, 5);
+
+                setTopOnTimeEmployees(topOnTime);
+                setTopLateEmployees(topLate);
+            }
+        } catch (error) {
+            console.error('Failed to load attendance data:', error);
         }
     };
 
@@ -436,7 +641,7 @@ const HRDashboard: React.FC = () => {
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Comprehensive Real-time Workforce Monitoring.</p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     {/* Tabs Navigation */}
                     <div style={{ display: 'flex', background: 'var(--surface)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border)' }}>
                         {['Overview', 'Lifecycle Events', 'Analytics & Reports'].map(tab => (
@@ -458,6 +663,81 @@ const HRDashboard: React.FC = () => {
                         ))}
                     </div>
 
+                    {/* Company Filter */}
+                    <div style={{ position: 'relative' }}>
+                        <button
+                            onClick={() => setShowCompanyFilter(!showCompanyFilter)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                background: selectedCompany ? 'var(--primary)' : 'var(--surface)',
+                                color: selectedCompany ? '#fff' : 'var(--text-main)',
+                                padding: '8px 14px',
+                                borderRadius: '12px',
+                                border: '1px solid var(--border)',
+                                fontSize: '0.85rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            <Building2 size={16} />
+                            {selectedCompany ? companies.find(c => c.id === selectedCompany)?.name || 'Company' : 'All Companies'}
+                            {selectedCompany && (
+                                <X size={14} onClick={(e) => { e.stopPropagation(); setSelectedCompany(null); }} />
+                            )}
+                        </button>
+                        {showCompanyFilter && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '110%',
+                                right: 0,
+                                background: 'var(--bg-card)',
+                                border: '1px solid var(--border)',
+                                borderRadius: '12px',
+                                boxShadow: 'var(--shadow-lg)',
+                                minWidth: '200px',
+                                zIndex: 100,
+                                maxHeight: '300px',
+                                overflowY: 'auto'
+                            }}>
+                                <div
+                                    onClick={() => { setSelectedCompany(null); setShowCompanyFilter(false); }}
+                                    style={{
+                                        padding: '12px 16px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 700,
+                                        color: !selectedCompany ? 'var(--primary)' : 'var(--text-main)',
+                                        borderBottom: '1px solid var(--border)'
+                                    }}
+                                >
+                                    All Companies
+                                </div>
+                                {companies.map(company => (
+                                    <div
+                                        key={company.id}
+                                        onClick={() => { setSelectedCompany(company.id); setShowCompanyFilter(false); }}
+                                        style={{
+                                            padding: '12px 16px',
+                                            cursor: 'pointer',
+                                            fontSize: '0.85rem',
+                                            fontWeight: 600,
+                                            color: selectedCompany === company.id ? 'var(--primary)' : 'var(--text-main)',
+                                            borderBottom: '1px solid var(--border)',
+                                            transition: 'background 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        {company.name}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     {/* Date Filter */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--surface)', padding: '6px 14px', borderRadius: '12px', border: '1px solid var(--border)' }}>
                         <CalendarIcon size={16} color="var(--primary)" />
@@ -466,6 +746,24 @@ const HRDashboard: React.FC = () => {
                             value={dateFilter}
                             onChange={(e) => setDateFilter(e.target.value)}
                             style={{ border: 'none', background: 'transparent', color: 'var(--text-main)', fontSize: '0.85rem', fontWeight: 700, outline: 'none' }}
+                        />
+                    </div>
+
+                    {/* Date Range Filter for Attendance */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--surface)', padding: '6px 12px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                        <Filter size={14} color="var(--primary)" />
+                        <input
+                            type="date"
+                            value={dateRangeFilter.start}
+                            onChange={(e) => setDateRangeFilter({ ...dateRangeFilter, start: e.target.value })}
+                            style={{ border: 'none', background: 'transparent', color: 'var(--text-main)', fontSize: '0.75rem', fontWeight: 700, outline: 'none', width: '110px' }}
+                        />
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>to</span>
+                        <input
+                            type="date"
+                            value={dateRangeFilter.end}
+                            onChange={(e) => setDateRangeFilter({ ...dateRangeFilter, end: e.target.value })}
+                            style={{ border: 'none', background: 'transparent', color: 'var(--text-main)', fontSize: '0.75rem', fontWeight: 700, outline: 'none', width: '110px' }}
                         />
                     </div>
                 </div>
@@ -576,35 +874,221 @@ const HRDashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Graphs Area */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
-                        <div className="glass-panel" style={{ padding: '32px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '32px' }}>
+                    {/* Main Analytics Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '20px' }}>
+                        {/* Gender Distribution (Replaces Recruitment Consistency) */}
+                        <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px', alignItems: 'center' }}>
                                 <div>
-                                    <h4 style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-main)' }}><BarChart3 size={20} color="var(--primary)" /> Recruitment Consistency</h4>
-                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '4px' }}>12-Month Historical Presence</p>
+                                    <h4 style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-main)' }}>
+                                        <PieChartIcon size={20} color="var(--primary)" /> Gender Distribution
+                                    </h4>
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '4px' }}>Workforce Composition by Gender</p>
+                                </div>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary)', background: 'var(--primary-glow)', padding: '6px 12px', borderRadius: '8px' }}>
+                                    {genderDistribution.male + genderDistribution.female + genderDistribution.other} Employees
                                 </div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem', height: '220px', padding: '0 1rem' }}>
-                                {monthlyData.map((count, i) => {
-                                    const max = Math.max(...monthlyData, 1);
-                                    const h = (count / max) * 100;
-                                    return (
-                                        <div key={i} style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                            <div style={{
-                                                height: `${Math.max(h, 5)}%`, width: '100%',
-                                                background: 'linear-gradient(to top, var(--primary) 0%, #fbbf24 100%)',
-                                                borderRadius: '6px 6px 0 0', opacity: 0.9, transition: 'all 0.5s'
-                                            }}>
-                                                <div style={{ position: 'absolute', top: '-20px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.6rem', fontWeight: 900, color: 'var(--primary)' }}>{count > 0 ? count : ''}</div>
-                                            </div>
-                                            <p style={{ position: 'absolute', bottom: '-25px', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>{['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i]}</p>
-                                        </div>
-                                    );
-                                })}
+
+                            <div style={{ flex: 1, minHeight: '220px', position: 'relative' }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={[
+                                                { name: 'Male', value: genderDistribution.male },
+                                                { name: 'Female', value: genderDistribution.female },
+                                                { name: 'Other', value: genderDistribution.other }
+                                            ].filter(d => d.value > 0)}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={90}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            <Cell fill="var(--primary)" />
+                                            <Cell fill="#f472b6" />
+                                            <Cell fill="#a8a29e" />
+                                        </Pie>
+                                        <Tooltip
+                                            contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px' }}
+                                        />
+                                        <Legend verticalAlign="bottom" height={36} />
+                                    </PieChart>
+                                </ResponsiveContainer>
                             </div>
                         </div>
 
+                        {/* Top Performance Analytics */}
+                        <div className="glass-panel" style={{ padding: '32px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px', alignItems: 'center' }}>
+                                <div>
+                                    <h4 style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-main)' }}>
+                                        <Trophy size={20} color="#fbbf24" /> Attendance Intelligence
+                                    </h4>
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '4px' }}>
+                                        Performance based on {attendancePeriod === 'MTD' ? 'Month to Date' : attendancePeriod}
+                                    </p>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    {/* Period Selection */}
+                                    <div style={{ display: 'flex', background: 'var(--surface)', padding: '2px', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                                        {['Today', 'Yesterday', 'MTD'].map((period) => (
+                                            <button
+                                                key={period}
+                                                onClick={() => setAttendancePeriod(period as any)}
+                                                style={{
+                                                    padding: '4px 10px',
+                                                    borderRadius: '8px',
+                                                    border: 'none',
+                                                    background: attendancePeriod === period ? 'var(--primary)' : 'transparent',
+                                                    color: attendancePeriod === period ? '#000' : 'var(--text-muted)',
+                                                    fontSize: '0.7rem',
+                                                    fontWeight: 800,
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                {period}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div
+                                        onClick={() => {
+                                            // Handle download - could be CSV or PDF
+                                            alert('Downloading attendance intelligence report...');
+                                        }}
+                                        style={{
+                                            padding: '8px',
+                                            borderRadius: '10px',
+                                            background: 'var(--surface)',
+                                            border: '1px solid var(--border)',
+                                            cursor: 'pointer',
+                                            color: 'var(--text-main)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                        className="card-hover"
+                                        title="Download Report"
+                                    >
+                                        <Download size={16} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                                {/* Top 5 On-Time */}
+                                <div>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#22c55e', textTransform: 'uppercase', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <CheckCircle2 size={14} /> Top 5 On-Time
+                                    </p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        {topOnTimeEmployees.map((emp, i) => (
+                                            <div
+                                                key={i}
+                                                onClick={() => setShowAttendanceDetails({ type: 'ontime', employee: emp })}
+                                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(34, 197, 94, 0.05)', borderRadius: '12px', border: '1px solid rgba(34, 197, 94, 0.1)', cursor: 'pointer', transition: 'all 0.2s' }}
+                                                className="card-hover"
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: '#fff', fontWeight: 800 }}>{i + 1}</div>
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px' }}>{emp.name}</span>
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#22c55e' }}>{Math.round(emp.onTimePercentage)}%</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {topOnTimeEmployees.length === 0 && <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>No attendance data.</p>}
+                                    </div>
+                                </div>
+
+                                {/* Top 5 Late */}
+                                <div>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <AlertCircle size={14} /> Top 5 Late
+                                    </p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        {topLateEmployees.map((emp, i) => (
+                                            <div
+                                                key={i}
+                                                onClick={() => setShowAttendanceDetails({ type: 'late', employee: emp })}
+                                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.1)', cursor: 'pointer', transition: 'all 0.2s' }}
+                                                className="card-hover"
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: '#fff', fontWeight: 800 }}>{i + 1}</div>
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px' }}>{emp.name}</span>
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#ef4444' }}>{emp.lateCount} Days</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {topLateEmployees.length === 0 && <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>No attendance data.</p>}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Public Holiday Calendar & Payroll Summary */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '20px' }}>
+                        {/* Public Holiday Calendar */}
+                        <div className="glass-panel" style={{ padding: '32px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px', alignItems: 'center' }}>
+                                <div>
+                                    <h4 style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-main)' }}>
+                                        <CalendarIcon size={20} color="var(--primary)" /> Public Holiday Calendar
+                                    </h4>
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '4px' }}>Upcoming Global Holidays and Observances</p>
+                                </div>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-muted)' }}>{new Date(dateFilter).getFullYear()} Schedule</div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+                                {publicHolidays.length > 0 ? (
+                                    publicHolidays.slice(0, 8).map((holiday, i) => (
+                                        <div key={i} style={{
+                                            background: 'var(--surface)',
+                                            padding: '16px',
+                                            borderRadius: '16px',
+                                            border: '1px solid var(--border)',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '8px'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                <div style={{
+                                                    width: '40px', height: '40px',
+                                                    background: 'var(--primary-glow)',
+                                                    borderRadius: '10px',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: 'var(--primary)',
+                                                    fontWeight: 900
+                                                }}>
+                                                    <span style={{ fontSize: '0.6rem', marginTop: '2px' }}>{new Date(holiday.date).toLocaleString('default', { month: 'short' }).toUpperCase()}</span>
+                                                    <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>{new Date(holiday.date).getDate()}</span>
+                                                </div>
+                                                <div style={{ padding: '4px 8px', background: holiday.type === 'MANDATORY' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 197, 24, 0.1)', color: holiday.type === 'MANDATORY' ? '#ef4444' : 'var(--primary)', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800 }}>{holiday.type}</div>
+                                            </div>
+                                            <h5 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0 2px' }}>{holiday.name}</h5>
+                                            <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{new Date(holiday.date).toLocaleDateString(undefined, { weekday: 'long' })}</p>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div style={{ gridColumn: '1/-1', padding: '40px', textAlign: 'center', background: 'var(--input-bg)', borderRadius: '16px', color: 'var(--text-muted)' }}>
+                                        No upcoming holidays found for this year.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Payroll Snapshot */}
                         <div className="card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
                             <div style={{ position: 'relative', width: '160px', height: '160px', marginBottom: '1.5rem' }}>
                                 <svg width="160" height="160" viewBox="0 0 160 160">
@@ -616,8 +1100,8 @@ const HRDashboard: React.FC = () => {
                                     <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700 }}>PAYROLL DONE</p>
                                 </div>
                             </div>
-                            <div style={{ background: 'var(--input-bg)', padding: '15px 25px', borderRadius: '15px', border: '1px solid var(--border)' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}>
+                            <div style={{ background: 'var(--input-bg)', padding: '15px 25px', borderRadius: '15px', border: '1px solid var(--border)', width: '100%' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#ef4444' }}>
                                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }} />
                                     <span style={{ fontWeight: 800 }}>{payrollStatus.pending}% DISBURSING</span>
                                 </div>
@@ -880,6 +1364,61 @@ const HRDashboard: React.FC = () => {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Attendance Detail Modal */}
+            {showAttendanceDetails.employee && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 1000,
+                    background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px'
+                }}>
+                    <div className="glass-panel fade-in" style={{ width: '100%', maxWidth: '450px', padding: '32px', borderRadius: '24px', position: 'relative', border: '1px solid var(--primary)' }}>
+                        <button
+                            onClick={() => setShowAttendanceDetails({ type: null, employee: null })}
+                            style={{ position: 'absolute', top: '24px', right: '24px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                        ><X size={20} /></button>
+
+                        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                            <div style={{
+                                width: '64px', height: '64px', borderRadius: '20px',
+                                background: showAttendanceDetails.type === 'ontime' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                color: showAttendanceDetails.type === 'ontime' ? '#22c55e' : '#ef4444',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'
+                            }}>
+                                {showAttendanceDetails.type === 'ontime' ? <CheckCircle2 size={32} /> : <AlertCircle size={32} />}
+                            </div>
+                            <h3 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)' }}>{showAttendanceDetails.employee.name}</h3>
+                            <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>Attendance Performance Analysis</p>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                            <div style={{ background: 'var(--surface)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                                <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>Total Presence</p>
+                                <p style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-main)' }}>{showAttendanceDetails.employee.totalCount} Days</p>
+                            </div>
+                            <div style={{ background: 'var(--surface)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                                <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>On-Time Rate</p>
+                                <p style={{ fontSize: '1.2rem', fontWeight: 900, color: '#22c55e' }}>{Math.round(showAttendanceDetails.employee.onTimePercentage)}%</p>
+                            </div>
+                            <div style={{ background: 'var(--surface)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                                <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>Late Incidents</p>
+                                <p style={{ fontSize: '1.2rem', fontWeight: 900, color: '#ef4444' }}>{showAttendanceDetails.employee.lateCount} Days</p>
+                            </div>
+                            <div style={{ background: 'var(--surface)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                                <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>Status</p>
+                                <p style={{ fontSize: '0.85rem', fontWeight: 800, color: showAttendanceDetails.employee.onTimePercentage > 90 ? '#22c55e' : '#fbbf24' }}>
+                                    {showAttendanceDetails.employee.onTimePercentage > 90 ? 'Excellent' : 'Needs Focus'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => setShowAttendanceDetails({ type: null, employee: null })}
+                            className="btn-primary" style={{ width: '100%', padding: '14px' }}
+                        >Close Overview</button>
+                    </div>
                 </div>
             )}
 

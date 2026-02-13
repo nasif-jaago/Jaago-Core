@@ -83,13 +83,13 @@ const SystemAdminDashboard: React.FC = () => {
     const companies = data?.companies || [];
 
     const filteredUsers = users.filter((u: any) =>
-        u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.login?.toLowerCase().includes(searchQuery.toLowerCase())
+        String(u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(u.login || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const filteredCompanies = companies.filter((c: any) =>
-        c.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.email?.toLowerCase().includes(searchQuery.toLowerCase())
+        String(c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(c.email || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (

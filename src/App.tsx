@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import SidebarLeft from './components/layout/SidebarLeft';
 import RightPanel from './components/layout/RightPanel';
+import Header from './components/layout/Header';
 import DashboardCore from './components/dashboard/DashboardCore';
 import StrategicOverview from './components/dashboard/StrategicOverview';
 import HRDashboard from './components/dashboard/HRDashboard';
@@ -12,44 +12,54 @@ import ContactsPage from './components/contacts/ContactsPage';
 import ApprovalsPage from './components/approvals/ApprovalsPage';
 import ExpensesPage from './components/expenses/ExpensesPage';
 import OnDutyPage from './components/hr/OnDutyPage';
+import AppraisalsPage from './components/hr/AppraisalsPage';
 import AdminDashboard from './components/dashboard/AdminDashboard';
 import SystemAdminDashboard from './components/dashboard/SystemAdminDashboard';
+import EmailsLogPage from './components/settings/EmailsLogPage';
+import APISettingsPage from './components/settings/APISettingsPage';
+import ConnectorsPage from './components/settings/ConnectorsPage';
+import EmailServerPage from './components/settings/EmailServerPage';
+import AIAgentPage from './components/settings/AIAgentPage';
+import AppraisalEditor from './components/hr/AppraisalEditor';
 import { MODULE_REGISTRY } from './api/ModuleRegistry';
 import GenericModulePage from './components/shared/GenericModulePage';
-import { ThemeProvider, useTheme } from './context/ThemeContext';
+import AppraisalLogsView from './components/hr/appraisals/AppraisalLogsView';
+import EmailTemplateList from './components/hr/appraisals/EmailTemplateList';
+import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './components/auth/LoginPage';
 import DashboardChatter from './components/dashboard/DashboardChatter';
+import AIBaba from './components/ai/AIBaba';
 import ErrorBoundary from './components/ErrorBoundary';
-import { LayoutGrid, Star, ChevronRight, Moon, Sun, RefreshCcw, Bell, Globe, Menu, X } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { RefreshCcw, LayoutGrid, Star, ChevronRight, ChevronLeft } from 'lucide-react';
 
 const Layout: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const role = user?.user_metadata?.role || 'user';
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [activeModule, setActiveModule] = useState<string | null>(null);
-  const { theme, toggleTheme } = useTheme();
 
   // Chatter State
   const [isChatterOpen, setIsChatterOpen] = useState(false);
   const [chatterMode, setChatterMode] = useState<'small' | 'full'>('small');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
+  const [isAIBabaOpen, setIsAIBabaOpen] = useState(false);
 
   useEffect(() => {
-    const handleGlobalClick = (e: MouseEvent) => {
-      const ripple = document.createElement('div');
-      ripple.className = 'click-ripple';
-      ripple.style.left = `${e.clientX - 25}px`;
-      ripple.style.top = `${e.clientY - 25}px`;
-      ripple.style.width = '50px';
-      ripple.style.height = '50px';
-      document.body.appendChild(ripple);
-      setTimeout(() => ripple.remove(), 600);
-    };
-
-    window.addEventListener('click', handleGlobalClick);
-    return () => window.removeEventListener('click', handleGlobalClick);
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get('view');
+    if (view === 'appraisal-editor') {
+      setActiveModule('appraisal-editor');
+      setIsRightPanelCollapsed(true);
+    } else if (view === 'appraisal-logs') {
+      setActiveModule('appraisal-logs');
+      setIsRightPanelCollapsed(true);
+    } else if (view === 'appraisal-templates') {
+      setActiveModule('appraisal-templates');
+      setIsRightPanelCollapsed(true);
+    }
   }, []);
 
   if (authLoading) {
@@ -71,133 +81,90 @@ const Layout: React.FC = () => {
 
   const renderContent = () => {
     if (activeModule) {
-      if (activeModule === 'employees') {
-        return <EmployeesPage onBack={() => setActiveModule(null)} />;
+      if (activeModule === 'employees') return <EmployeesPage onBack={() => setActiveModule(null)} />;
+      if (activeModule === 'leave') return <LeaveRequestPage onBack={() => setActiveModule(null)} />;
+      if (activeModule === 'contacts') return <ContactsPage onBack={() => setActiveModule(null)} />;
+      if (activeModule === 'contacts-customers') return <ContactsPage onBack={() => setActiveModule(null)} initialFilters={{ isCustomer: true }} />;
+      if (activeModule === 'approvals') return <ApprovalsPage onBack={() => setActiveModule(null)} />;
+      if (activeModule === 'expenses') return <ExpensesPage onBack={() => setActiveModule(null)} />;
+      if (activeModule === 'onduty') return <OnDutyPage onBack={() => setActiveModule(null)} />;
+      if (activeModule === 'appraisals') return <AppraisalsPage onBack={() => setActiveModule(null)} />;
+      if (activeModule === 'appraisal-editor') {
+        const appraisalId = new URLSearchParams(window.location.search).get('id');
+        return <AppraisalEditor initialId={appraisalId ? parseInt(appraisalId) : null} onBack={() => setActiveModule(null)} />;
       }
-      if (activeModule === 'leave') {
-        return <LeaveRequestPage onBack={() => setActiveModule(null)} />;
-      }
-      if (activeModule === 'contacts') {
-        return <ContactsPage onBack={() => setActiveModule(null)} />;
-      }
-      if (activeModule === 'approvals') {
-        return <ApprovalsPage onBack={() => setActiveModule(null)} />;
-      }
-      if (activeModule === 'expenses') {
-        return <ExpensesPage onBack={() => setActiveModule(null)} />;
-      }
-      if (activeModule === 'onduty') {
-        return <OnDutyPage onBack={() => setActiveModule(null)} />;
+      if (activeModule === 'api-settings') return <APISettingsPage onBack={() => setActiveModule(null)} />;
+      if (activeModule === 'connectors') return <ConnectorsPage onBack={() => setActiveModule(null)} />;
+      if (activeModule === 'appraisal-logs') return <AppraisalLogsView onBack={() => setActiveModule(null)} />;
+      if (activeModule === 'appraisal-templates') return <EmailTemplateList onBack={() => setActiveModule(null)} />;
+      if (activeModule === 'aibaba') {
+        setIsAIBabaOpen(true);
+        setActiveModule(null);
+        return null;
       }
 
       const config = MODULE_REGISTRY[activeModule];
-      if (config) {
-        return <GenericModulePage config={config} onBack={() => setActiveModule(null)} />;
-      }
+      if (config) return <GenericModulePage config={config} onBack={() => setActiveModule(null)} />;
     }
 
     switch (activeTab) {
-      case 'Dashboard':
-        return <StrategicOverview />;
-      case 'Human Resources':
-        return <HRDashboard />;
-      case 'Admin & Procurement':
-        return <AdminDashboard />;
-      case 'Child Welfare':
-        return <ChildWelfareDashboard />;
-      case 'Finance':
-        return <FinanceDashboard />;
-      case 'Admin':
-        return role === 'admin' ? <SystemAdminDashboard /> : <StrategicOverview />;
-      default:
-        return <DashboardCore title={activeTab} />;
+      case 'Dashboard': return <StrategicOverview onModuleClick={setActiveModule} />;
+      case 'Human Resources': return <HRDashboard />;
+      case 'Admin & Procurement': return <AdminDashboard />;
+      case 'Child Welfare': return <ChildWelfareDashboard />;
+      case 'Finance': return <FinanceDashboard />;
+      case 'Admin': return role === 'admin' ? <SystemAdminDashboard /> : <StrategicOverview onModuleClick={setActiveModule} />;
+      case 'Emails Log': return <EmailsLogPage />;
+      case 'API': return <APISettingsPage onBack={() => setActiveModule(null)} />;
+      case 'Connectors': return <ConnectorsPage onBack={() => setActiveModule(null)} />;
+      case 'Email Server': return <EmailServerPage onBack={() => setActiveTab('Dashboard')} />;
+      case 'AI Agent': return <AIAgentPage onBack={() => setActiveTab('Dashboard')} role={role} />;
+      default: return <DashboardCore title={activeTab} />;
     }
   };
 
   return (
-    <div className={`app-container ${isMobileMenuOpen ? 'mobile-menu-open' : ''} ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <div className={`sidebar-wrapper ${isMobileMenuOpen ? 'open' : ''} ${isSidebarCollapsed ? 'collapsed' : ''}`} style={{
-        position: isMobileMenuOpen ? 'fixed' : 'relative',
-        top: 0, left: 0, height: '100vh', zIndex: 1000,
-        display: isMobileMenuOpen ? 'block' : undefined
-      }}>
-        <SidebarLeft
-          activeTab={activeTab}
-          setActiveTab={(tab) => {
-            handleTabChange(tab);
-            setIsMobileMenuOpen(false);
-          }}
-          onLogoClick={() => {
-            handleTabChange('Dashboard');
-            window.location.reload(); // Hard refresh to reset all data as requested
-          }}
-          user={user}
-        />
-      </div>
+    <div className="app-container">
+      <main className="main-content" style={{ marginLeft: 0 }}>
+        <Header activeTab={activeTab} setActiveTab={handleTabChange} />
 
-      <main className="main-content">
-        <header style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '2rem',
-          paddingBottom: '1rem',
-          borderBottom: '1px solid var(--border-glass)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="mobile-toggle"
-              style={{ background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', display: 'none' }}
+        <div style={{ padding: '0 1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            <LayoutGrid size={16} />
+            <Star size={16} />
+            <span
+              style={{ margin: '0 4px', cursor: 'pointer' }}
+              onClick={() => { setActiveTab('Dashboard'); setActiveModule(null); }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
             >
-              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-            <button
-              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="sidebar-toggle-desktop"
+              Dashboards
+            </span>
+            <ChevronRight size={14} />
+            <span
               style={{
-                background: 'var(--input-bg)',
-                border: '1px solid var(--border-glass)',
-                borderRadius: '8px',
-                padding: '6px',
-                cursor: 'pointer',
-                color: 'var(--text-main)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'var(--transition)'
+                color: activeModule ? 'var(--text-muted)' : 'var(--text-main)',
+                fontWeight: 500,
+                cursor: activeModule ? 'pointer' : 'default'
               }}
+              onClick={() => activeModule && setActiveModule(null)}
+              onMouseEnter={(e) => activeModule && (e.currentTarget.style.color = 'var(--primary)')}
+              onMouseLeave={(e) => activeModule && (e.currentTarget.style.color = 'var(--text-muted)')}
             >
-              {isSidebarCollapsed ? <Menu size={20} /> : <X size={20} />}
-            </button>
-            <div className="breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              <LayoutGrid size={16} />
-              <Star size={16} />
-              <span style={{ margin: '0 4px' }}>Dashboards</span>
-              <ChevronRight size={14} />
-              <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
-                {activeTab === 'Dashboard' ? 'JAAGO Core' : activeTab}
-                {activeModule && (
-                  <>
-                    <ChevronRight size={14} style={{ margin: '0 4px' }} />
-                    <span style={{ color: 'var(--primary)' }}>{activeModule.charAt(0).toUpperCase() + activeModule.slice(1)}</span>
-                  </>
-                )}
-              </span>
-            </div>
+              {activeTab === 'Dashboard' ? 'JAAGO Foundation' : activeTab}
+            </span>
+            {activeModule && (
+              <>
+                <ChevronRight size={14} style={{ margin: '0 4px' }} />
+                <span style={{ color: 'var(--primary)', fontWeight: 600 }}>
+                  {activeModule.charAt(0).toUpperCase() + activeModule.slice(1).replace(/-/g, ' ')}
+                </span>
+              </>
+            )}
           </div>
+        </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', color: 'var(--text-muted)' }}>
-            <button onClick={toggleTheme} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-              {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
-            </button>
-            <RefreshCcw size={18} style={{ cursor: 'pointer' }} onClick={() => window.location.reload()} />
-            <Bell size={18} style={{ cursor: 'pointer' }} />
-            <Globe size={18} style={{ cursor: 'pointer' }} />
-          </div>
-        </header>
-
-        <div className="content-scroll" style={{ flex: 1, minHeight: 0 }}>
+        <div className="content-scroll" style={{ flex: 1, overflowY: 'auto' }}>
           {renderContent()}
         </div>
       </main>
@@ -207,13 +174,58 @@ const Layout: React.FC = () => {
         onModuleClick={(id) => setActiveModule(id)}
         onOdooDiscussClick={() => setIsChatterOpen(true)}
         onGoogleChatClick={() => window.open('https://mail.google.com/chat', '_blank')}
+        isCollapsed={isRightPanelCollapsed}
       />
+
+      <motion.button
+        onClick={() => setIsRightPanelCollapsed(!isRightPanelCollapsed)}
+        whileHover={{ scale: 1.05, x: isRightPanelCollapsed ? -2 : 2 }}
+        whileTap={{ scale: 0.98 }}
+        style={{
+          position: 'fixed',
+          top: '120px',
+          right: isRightPanelCollapsed ? '0px' : '280px',
+          width: '24px',
+          height: '48px',
+          borderRadius: isRightPanelCollapsed ? '8px 0 0 8px' : '0 8px 8px 0',
+          background: 'var(--primary-gradient)',
+          border: 'none',
+          boxShadow: '0 4px 15px var(--primary-glow)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 2000,
+          color: '#000',
+          transition: 'all 0.3s ease',
+          backdropFilter: 'blur(10px)'
+        }}
+      >
+        <motion.div
+          animate={{ rotate: isRightPanelCollapsed ? 0 : 180 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+        >
+          <ChevronLeft size={16} />
+        </motion.div>
+      </motion.button>
 
       <DashboardChatter
         isOpen={isChatterOpen}
         onClose={() => setIsChatterOpen(false)}
         mode={chatterMode}
         setMode={setChatterMode}
+      />
+
+      <AIBaba
+        role={role}
+        forceOpen={isAIBabaOpen}
+        onToggle={() => setIsAIBabaOpen(!isAIBabaOpen)}
+        onCommand={(cmd, data) => {
+          if (cmd === 'navigate') {
+            if (data.tab) setActiveTab(data.tab);
+            if (data.module) setActiveModule(data.module);
+          }
+        }}
       />
     </div>
   );

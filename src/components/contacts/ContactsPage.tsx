@@ -13,9 +13,10 @@ import ContactDetailPage from './ContactDetailPage';
 
 interface ContactsPageProps {
     onBack: () => void;
+    initialFilters?: ContactFilters;
 }
 
-const ContactsPage: React.FC<ContactsPageProps> = ({ onBack }) => {
+const ContactsPage: React.FC<ContactsPageProps> = ({ onBack, initialFilters }) => {
     // State
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [loading, setLoading] = useState(true);
@@ -28,7 +29,10 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onBack }) => {
     const recordsPerPage = 50;
 
     // Filters
-    const [filters, setFilters] = useState<ContactFilters>({ activeOnly: true });
+    const [filters, setFilters] = useState<ContactFilters>({
+        activeOnly: true,
+        ...initialFilters
+    });
     const [searchTerm, setSearchTerm] = useState('');
     const [companies, setCompanies] = useState<any[]>([]);
     const [categories, setCategories] = useState<ContactCategory[]>([]);
@@ -120,8 +124,8 @@ const ContactsPage: React.FC<ContactsPageProps> = ({ onBack }) => {
                         <ChevronLeft size={22} strokeWidth={2.5} />
                     </button>
                     <div>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '2px' }}>Odoo / Contacts</p>
-                        <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)' }}>Contacts</h2>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '2px' }}>Odoo / {filters.isCustomer ? 'Customers' : 'Contacts'}</p>
+                        <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)' }}>{filters.isCustomer ? 'Customers (Sponsors)' : 'Contacts'}</h2>
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchRecords, deleteRecord } from '../../api/odoo';
+import { fetchRecords, deleteRecord, writeRecord } from '../../api/odoo';
 import type { ModuleConfig } from '../../api/ModuleRegistry';
 import {
     ChevronLeft, Plus, Download, Search, Filter,
@@ -48,7 +48,20 @@ const GenericModulePage: React.FC<GenericModulePageProps> = ({ config, onBack })
             await deleteRecord(config.model, id);
             setRecords(prev => prev.filter(r => r.id !== id));
         } catch (err: any) {
-            alert('Delete failed: ' + err.message);
+            const errorMsg = err.message || '';
+            if (errorMsg.includes('Another model is using') || errorMsg.includes('constraint')) {
+                if (window.confirm(`${errorMsg}\n\nWould you like to archive (deactivate) this record instead?`)) {
+                    try {
+                        await writeRecord(config.model, id, { active: false });
+                        setRecords(prev => prev.filter(r => r.id !== id));
+                        alert('Record archived successfully.');
+                    } catch (archiveErr: any) {
+                        alert('Archive failed: ' + archiveErr.message);
+                    }
+                }
+            } else {
+                alert('Delete failed: ' + errorMsg);
+            }
         }
     };
 

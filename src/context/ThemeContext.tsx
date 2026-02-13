@@ -1,36 +1,47 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'light' | 'dark';
+export type Theme = 'dark' | 'mode-b' | 'mode-c';
 
 interface ThemeContextType {
   theme: Theme;
-  toggleTheme: () => void;
+  setTheme: (theme: Theme) => void;
+  cycleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('theme');
-    return (saved as Theme) || 'dark';
+  const [theme, setThemeState] = useState<Theme>(() => {
+    return (localStorage.getItem('theme') as Theme) || 'dark';
   });
 
+  const setTheme = (newTheme: Theme) => {
+    setThemeState(newTheme);
+    localStorage.setItem('theme', newTheme);
+  };
+
+  const cycleTheme = () => {
+    const modes: Theme[] = ['dark', 'mode-b', 'mode-c'];
+    const currentIndex = modes.indexOf(theme);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setTheme(modes[nextIndex]);
+  };
+
   useEffect(() => {
-    localStorage.setItem('theme', theme);
+    // Remove all possible theme classes
+    document.body.classList.remove('mode-b', 'mode-c');
     document.documentElement.setAttribute('data-theme', theme);
-    if (theme === 'light') {
-      document.body.classList.add('light');
-    } else {
-      document.body.classList.remove('light');
+
+    // Add the specific class if it's mode-b or mode-c
+    if (theme === 'mode-b') {
+      document.body.classList.add('mode-b');
+    } else if (theme === 'mode-c') {
+      document.body.classList.add('mode-c');
     }
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
-  };
-
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, cycleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

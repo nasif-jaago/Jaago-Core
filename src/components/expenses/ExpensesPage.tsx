@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     ChevronLeft, Plus, RefreshCw, Search,
-    Receipt, Eye
+    Receipt, Eye, FileText
 } from 'lucide-react';
 import {
     fetchExpenses,
@@ -15,6 +15,8 @@ import {
 } from '../../api/ExpensesService';
 import ExpenseCreatePage from './ExpenseCreatePage';
 import ExpenseDetailModal from './ExpenseDetailModal';
+import ExpenseReportsList from './ExpenseReportsList';
+import ExpenseDetailPage from './ExpenseDetailPage';
 
 interface ExpensesPageProps {
     onBack: () => void;
@@ -36,8 +38,9 @@ const ExpensesPage: React.FC<ExpensesPageProps> = ({ onBack }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedState, setSelectedState] = useState<string>('');
 
-    const [view, setView] = useState<'list' | 'create'>('list');
+    const [view, setView] = useState<'list' | 'create' | 'report' | 'detail'>('list');
     const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+    const [selectedExpenseId, setSelectedExpenseId] = useState<number | null>(null);
 
     useEffect(() => {
         loadInitialData();
@@ -126,11 +129,33 @@ const ExpensesPage: React.FC<ExpensesPageProps> = ({ onBack }) => {
 
     const totalPages = Math.ceil(totalCount / recordsPerPage);
 
+    if (view === 'detail' && selectedExpenseId) {
+        return (
+            <ExpenseDetailPage
+                expenseId={selectedExpenseId}
+                onBack={() => {
+                    setView('list');
+                    setSelectedExpenseId(null);
+                }}
+                onUpdate={() => loadExpenses()}
+            />
+        );
+    }
+
+    if (view === 'report') {
+        return (
+            <ExpenseReportsList
+                onBack={() => setView('list')}
+            />
+        );
+    }
+
     if (view === 'create') {
         return (
             <ExpenseCreatePage
                 products={products}
                 employees={employees}
+                fields={fields}
                 onBack={() => setView('list')}
                 onSuccess={() => {
                     setView('list');
@@ -167,6 +192,17 @@ const ExpensesPage: React.FC<ExpensesPageProps> = ({ onBack }) => {
                         style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
                         <Plus size={18} /> New Expense
+                    </button>
+                    <button
+                        onClick={() => setView('report')}
+                        style={{
+                            background: 'var(--primary-glow)', border: '1px solid var(--primary)',
+                            borderRadius: '10px', padding: '8px 16px', color: 'var(--primary)',
+                            display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
+                            fontWeight: 600
+                        }}
+                    >
+                        <FileText size={16} /> Active Expenses Report
                     </button>
                     <button
                         onClick={loadExpenses}
@@ -254,7 +290,10 @@ const ExpensesPage: React.FC<ExpensesPageProps> = ({ onBack }) => {
                                 {expenses.map(expense => (
                                     <tr
                                         key={expense.id}
-                                        onClick={() => setSelectedExpense(expense)}
+                                        onClick={() => {
+                                            setSelectedExpenseId(expense.id);
+                                            setView('detail');
+                                        }}
                                         style={{ borderBottom: '1px solid var(--border-glass)', cursor: 'pointer' }}
                                         className="table-row-hover"
                                     >

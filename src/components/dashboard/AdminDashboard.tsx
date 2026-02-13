@@ -75,7 +75,7 @@ const AdminDashboard: React.FC = () => {
 
             {/* Top KPI row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '40px' }}>
-                <div className="glass-panel" style={{ background: 'var(--primary-gradient)', borderRadius: '24px', padding: '24px', color: '#000', textAlign: 'center', boxShadow: '0 20px 40px rgba(245, 197, 24, 0.2)' }}>
+                <div className="glass-panel" style={{ background: 'var(--primary-gradient)', borderRadius: '24px', padding: '24px', color: '#fff', textAlign: 'center', boxShadow: 'var(--shadow-3d)' }}>
                     <div style={{ fontSize: '2.2rem', fontWeight: 900 }}>${(totalSpend / 1000000).toFixed(2)}M</div>
                     <div style={{ fontSize: '0.8rem', fontWeight: 800, opacity: 0.8, letterSpacing: '1px' }}>TOTAL SPEND</div>
                 </div>

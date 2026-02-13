@@ -238,6 +238,58 @@ export const fetchExpenseById = async (id: number): Promise<{
 };
 
 /**
+ * Fetch a single expense by Studio Code
+ */
+export const fetchExpenseByCode = async (code: string): Promise<{
+    success: boolean;
+    data?: Expense;
+    error?: string;
+}> => {
+    try {
+        const domain = [['x_studio_code', '=', code]];
+        const fields = [
+            'name', 'employee_id', 'product_id', 'total_amount', 'payment_mode',
+            'description', 'x_studio_selection_field_5hb_1jbkffh63',
+            'x_studio_projects_name', 'x_studio_purpose_of_travel_1',
+            'x_studio_destination_city_country', 'x_studio_mode_of_travel',
+            'x_studio_duration', 'x_studio_do_you_require_an_advance_payment'
+        ];
+        const result = await odooCall('hr.expense', 'search_read', [domain], {
+            fields,
+            limit: 1
+        });
+        if (result && result.length > 0) {
+            return { success: true, data: result[0] };
+        }
+        return { success: false, error: 'No expense found with this code' };
+    } catch (error: any) {
+        console.error('Error fetching expense by code:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Fetch the latest expense code to generate the next one
+ */
+export const getLatestExpenseCode = async (): Promise<string | null> => {
+    try {
+        const domain = [['x_studio_code', '!=', false]];
+        const result = await odooCall('hr.expense', 'search_read', [domain], {
+            fields: ['x_studio_code'],
+            limit: 1,
+            order: 'x_studio_code DESC'
+        });
+        if (result && result.length > 0) {
+            return result[0].x_studio_code;
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching latest code:', error);
+        return null;
+    }
+};
+
+/**
  * Submit expense for approval
  */
 export const submitExpense = async (id: number): Promise<{
@@ -379,6 +431,43 @@ export const fetchExpenseRelationOptions = async (model: string, domain: any[] =
         });
         return { success: true, data: result };
     } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Fetch chatter/messages for a record
+ */
+export const fetchExpenseChatter = async (id: number): Promise<{ success: boolean; data?: any[]; error?: string }> => {
+    try {
+        const result = await odooCall('mail.message', 'search_read', [
+            [['res_id', '=', id], ['model', '=', 'hr.expense']]
+        ], {
+            fields: ['author_id', 'body', 'date', 'subtype_id', 'tracking_value_ids'],
+            order: 'date DESC'
+        });
+        return { success: true, data: result };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Fetch approvals for a record if available
+ */
+export const fetchExpenseApprovals = async (resId: number): Promise<{ success: boolean; data?: any[]; error?: string }> => {
+    try {
+        // Looking for related approvals (typically in approval.request or similar)
+        // Adjusting to a common Odoo pattern where approvals might be linked via res_model/res_id
+        const result = await odooCall('approval.request', 'search_read', [
+            [['res_id', '=', resId], ['res_model', '=', 'hr.expense']]
+        ], {
+            fields: ['request_owner_id', 'approver_ids', 'date_confirmed', 'status'],
+            limit: 10
+        });
+        return { success: true, data: result };
+    } catch (error: any) {
+        // If approval.request model doesn't exist, we might fall back to chatter parsing
         return { success: false, error: error.message };
     }
 };
