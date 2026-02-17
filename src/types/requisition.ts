@@ -46,6 +46,7 @@ export interface RequisitionLine {
     id?: number;
     request_id?: number;
     product_id: number | [number, string] | false;
+    description?: string;
     x_studio_product_description?: string;
     product_uom_id: number | [number, string] | false;
     quantity?: number;

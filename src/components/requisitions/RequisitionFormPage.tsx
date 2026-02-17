@@ -330,6 +330,7 @@ const RequisitionFormPage: React.FC<RequisitionFormPageProps> = ({ requisitionId
         const payload: RequisitionFormValues = {
             name: formData.name || '',
             category_id: extractId(formData.category_id),
+            amount: formData.x_studio_total_amount || 0,
             date: formData.date,
             reference: formData.reference,
             request_owner_id: extractId(formData.request_owner_id),
@@ -340,12 +341,12 @@ const RequisitionFormPage: React.FC<RequisitionFormPageProps> = ({ requisitionId
             x_studio_projects_name: extractId(formData.x_studio_projects_name),
             x_studio_project_code: formData.x_studio_project_code,
             x_studio_budget_amount: formData.x_studio_budget_amount,
-            x_studio_total_amount: formData.x_studio_total_amount,
             x_studio_refusal_note: formData.x_studio_refusal_note,
             reason: formData.reason,
             product_line_ids: (formData.product_line_ids || []).map((line: any) => {
                 const lineValues = {
                     product_id: extractId(line.product_id),
+                    description: line.x_studio_product_description || '',
                     x_studio_product_description: line.x_studio_product_description,
                     product_uom_id: extractId(line.product_uom_id),
                     quantity: parseFloat(line.quantity as any) || 0,

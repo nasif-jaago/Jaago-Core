@@ -412,7 +412,7 @@ export const fetchCurrentUserProfile = async (): Promise<ApiResponse<Employee>> 
 export const fetchProductLines = async (requisitionId: number): Promise<ApiResponse<RequisitionLine[]>> => {
     try {
         const result = await odooCall('approval.product.line', 'search_read', [[['approval_request_id', '=', requisitionId]]], {
-            fields: ['product_id', 'x_studio_product_description', 'product_uom_id', 'quantity', 'x_studio_per_unit_price', 'x_studio_estimated_price']
+            fields: ['product_id', 'description', 'x_studio_product_description', 'product_uom_id', 'quantity', 'x_studio_per_unit_price', 'x_studio_estimated_price']
         });
         return { success: true, data: result };
     } catch (error: any) {

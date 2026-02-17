@@ -117,6 +117,7 @@ const RequisitionProductLines: React.FC<RequisitionProductLinesProps> = ({ lines
             if (productId) {
                 const product = products.find(p => p.id === productId);
                 if (product) {
+                    line.description = product.name;
                     line.x_studio_product_description = product.name;
                     line.product_uom_id = product.uom_id || false;
                     line.x_studio_per_unit_price = product.list_price || product.standard_price || 0;
