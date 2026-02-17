@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_approval_request_user,approval.request.user,model_approval_request,group_requisition_user,1,1,1,0
+access_approval_request_admin,approval.request.admin,model_approval_request,group_requisition_admin,1,1,1,1
+access_approval_request_line_user,approval.request.line.user,model_approval_request_line,group_requisition_user,1,1,1,1
+access_approval_request_line_admin,approval.request.line.admin,model_approval_request_line,group_requisition_admin,1,1,1,1
+access_studio_approval_rule_user,studio.approval.rule.user,model_studio_approval_rule,group_requisition_user,1,0,0,0
+access_studio_approval_rule_admin,studio.approval.rule.admin,model_studio_approval_rule,group_requisition_admin,1,1,1,1
+access_approval_approver_history_user,approval.approver.history.user,model_approval_approver_history,group_requisition_user,1,0,0,0
+access_approval_approver_history_approver,approval.approver.history.approver,model_approval_approver_history,group_requisition_approver,1,1,0,0
+access_approval_approver_history_admin,approval.approver.history.admin,model_approval_approver_history,group_requisition_admin,1,1,1,1

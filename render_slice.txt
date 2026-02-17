@@ -1,0 +1,2 @@
+renderTemplateToHTML: (blocks: any[], variables: { [key: string]: string }): string => {
+        if (!Array.isArray(blocks)) 

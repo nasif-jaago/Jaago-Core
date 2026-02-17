@@ -1,0 +1,156 @@
+renderTemplateToHTML: (blocks: any[], variables: { [key: string]: string }): string => {
+        if (!Array.isArray(blocks)) return blocks || '';
+
+        const replaceVars = (text: string) => {
+            let result = text || '';
+            Object.entries(variables).forEach(([key, value]) => {
+                const regex = new RegExp(`{{${key}}}`, 'g');
+                result = result.replace(regex, value || '');
+            });
+            // Odoo style variables fallback
+            result = result.replace(/{{object\.employee_id\.name}}/g, variables.employee_name || '')
+                .replace(/{{object\.name}}/g, variables.employee_name || '');
+            return result;
+        };
+
+        const renderBlock = (block: any) => {
+            const style = block.style || {};
+            const styleStr = Object.entries(style)
+                .map(([k, v]) => `${k.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)}:${v}`)
+                .join(';');
+
+            switch (block.type) {
+                case 'heading':
+                    return `<h1 style="${styleStr}; margin: 20px 0;">${replaceVars(block.content)}</h1>`;
+                case 'text':
+                case 'variable':
+                    return `<p style="${styleStr}; line-height: 1.6; margin: 10px 0; white-space: pre-wrap;">${replaceVars(block.content)}</p>`;
+                case 'button':
+                case 'secure_link':
+                    const buttonFormId = block.formId;
+                    const btnLink = buttonFormId ? `${window.location.origin}/?view=form-preview&id=${buttonFormId}&token=${variables.secure_token}&appraisal_id=${variables.appraisal_id}` : (block.url ? replaceVars(block.url) : variables.secure_link);
+                    const bgColor = style.backgroundColor || '#22c55e';
+                    const color = style.color || '#ffffff';
+                    return `
+                        <div style="text-align: ${style.textAlign || 'center'}; margin: 30px 0;">
+                            <a href="${btnLink}" style="background-color: ${bgColor}; color: ${color}; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 16px;">
+                                ${replaceVars(block.content)}
+                            </a>
+                        </div>`;
+                case 'divider':
+                    return `<hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">`;
+                case 'spacer':
+                    return `<div style="height: ${style.padding || '20px'};"></div>`;
+                case 'image':
+                    return `<div style="text-align: ${style.textAlign || 'center'}; margin: 20px 0;"><img src="${block.content}" style="max-width: 100%; border-radius: ${style.borderRadius || '0'};" /></div>`;
+                case 'signature':
+                    return `<div style="${styleStr}; margin-top: 40px; border-top: 1px solid #f1f5f9; padding-top: 20px; font-style: italic; color: #64748b;">${replaceVars(block.content).replace(/\n/g, '<br/>')}</div>`;
+                case 'document':
+                    return `
+                        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin: 20px 0; display: flex; align-items: center; gap: 12px;">
+                            <div style="color: #3b82f6; font-weight: bold;">📄 DOC:</div>
+                            <div style="color: #1e293b; font-size: 14px;">${block.content}</div>
+                        </div>`;
+                case 'three_sixty_invite':
+                    let invites = [];
+                    try {
+                        invites = typeof block.content === 'string' ? JSON.parse(block.content) : (Array.isArray(block.content) ? block.content : []);
+                    } catch (e) {
+                        console.error('Failed to parse 360 invites', e);
+                    }
+
+                    // Filter for specific recipient if email provided
+                    const filteredInvites = variables.recipient_email
+                        ? invites.filter((inv: any) => inv.email === variables.recipient_email)
+                        : invites;
+
+                    // If we expected a specific recipient but they aren't in the list, 
+                    // we show a fallback row so the table isn't empty if we intended to send to them
+                    const finalInvites = (filteredInvites.length === 0 && variables.recipient_email)
+                        ? [{ name: variables.employee_name || 'N/A', email: variables.recipient_email }]
+                        : filteredInvites;
+
+                    if (finalInvites.length === 0) return '';
+
+                    const tableRows = finalInvites.map((inv: any) => `
+                        <tr>
+                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #1e293b;">${inv.name || 'N/A'}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #475569;">${inv.email || 'N/A'}</td>
+                        </tr>
+                    `).join('');
+
+                    return `
+                        <div style="margin: 30px 0; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                            <div style="background: #f8fafc; padding: 16px; border-bottom: 1px solid #e2e8f0;">
+                                <h3 style="margin: 0; color: #1e293b; font-size: 16px;">Peer Feedback Request List</h3>
+                            </div>
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #fdfdfd;">
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Employee Name</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Work Email</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${tableRows}
+                                </tbody>
+                            </table>
+                            <div style="padding: 24px; text-align: center; background: #f8fafc;">
+                                <p style="margin: 0 0 16px 0; font-size: 14px; color: #64748b;">Please click the button below to submit your feedback for the above colleagues.</p>
+                                <a href="${`${window.location.origin}/?view=360-quick-inviter&token=${variables.secure_token}&appraisal_id=${variables.appraisal_id}&giver=${variables.recipient_email}`}" style="background-color: #f5c518; color: #000000; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: 800; display: inline-block; font-size: 15px; box-shadow: 0 4px 12px rgba(245, 197, 24, 0.3);">
+                                    SUBMIT FEEDBACK NOW
+                                </a>
+                            </div>
+                        </div>`;
+                default:
+                    return `<p>${replaceVars(block.content || '')}</p>`;
+            }
+        };
+
+        const bodyContent = blocks.map(renderBlock).join('');
+
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Appraisal Notification</title>
+            </head>
+            <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                    <tr>
+                        <td align="center" style="padding: 40px 0;">
+                            <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+                                <!-- Header -->
+                                <tr>
+                                    <td align="center" style="padding: 40px 40px 0 40px;">
+                                        <div style="color: #1e293b; font-weight: 900; font-size: 24px; letter-spacing: 2px;">JAAGO FOUNDATION</div>
+                                        <div style="height: 4px; width: 60px; background: #22c55e; margin: 12px auto; border-radius: 2px;"></div>
+                                    </td>
+                                </tr>
+                                <!-- Main Content -->
+                                <tr>
+                                    <td style="padding: 40px; color: #334155;">
+                                        ${bodyContent}
+                                    </td>
+                                </tr>
+                                <!-- Footer -->
+                                <tr>
+                                    <td style="padding: 30px 40px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
+                                        <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.5;">
+                                            This is an automated system message from JAAGO Foundation Human Resources.<br/>
+                                            Confidential Performance Appraisal System.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+        `;
+    },
+
+    

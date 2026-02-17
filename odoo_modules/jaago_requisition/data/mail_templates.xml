@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Template for Approval Request -->
+    <record id="email_template_approval_request" model="mail.template">
+        <field name="name">Requisition: Approval Request</field>
+        <field name="model_id" ref="model_approval_request"/>
+        <field name="subject">Approval Required: ${object.name}</field>
+        <field name="email_to">${ctx.get('approver').work_email}</field>
+        <field name="body_html" type="html">
+            <div style="margin: 0px; padding: 0px;">
+                <p style="margin: 0px; padding: 0px; font-size: 13px;">
+                    Dear ${ctx.get('approver').name},<br/><br/>
+                    A new requisition has been submitted and requires your approval.
+                    <br/><br/>
+                    <strong>Details:</strong>
+                    <ul>
+                        <li>Subject: ${object.name}</li>
+                        <li>Requested by: ${object.request_owner_id.name}</li>
+                        <li>Amount: ${object.x_studio_total_amount} ${object.company_id.currency_id.symbol}</li>
+                        <li>Project: ${object.x_studio_projects_name.name or 'N/A'}</li>
+                    </ul>
+                    <br/><br/>
+                    <a href="/web#id=${object.id}&amp;model=approval.request&amp;view_type=form" 
+                       style="background-color: #F5C518; padding: 10px 20px; text-decoration: none; color: #000; border-radius: 5px; font-weight: bold;">
+                        Review Requisition
+                    </a>
+                    <br/><br/>
+                    Regards,<br/>
+                    ${object.company_id.name}
+                </p>
+            </div>
+        </field>
+    </record>
+
+    <!-- Template for Refusal -->
+    <record id="email_template_approval_refused" model="mail.template">
+        <field name="name">Requisition: Refused</field>
+        <field name="model_id" ref="model_approval_request"/>
+        <field name="subject">Requisition Refused: ${object.name}</field>
+        <field name="email_to">${object.request_owner_id.work_email}</field>
+        <field name="body_html" type="html">
+            <div style="margin: 0px; padding: 0px;">
+                <p style="margin: 0px; padding: 0px; font-size: 13px;">
+                    Dear ${object.request_owner_id.name},<br/><br/>
+                    Your requisition <strong>${object.name}</strong> has been refused by ${ctx.get('approver').name}.
+                    <br/><br/>
+                    <strong>Reason for Refusal:</strong><br/>
+                    ${ctx.get('reason')}
+                    <br/><br/>
+                    You can edit the requisition and resubmit it if required.
+                    <br/><br/>
+                    <a href="/web#id=${object.id}&amp;model=approval.request&amp;view_type=form" 
+                       style="background-color: #F5C518; padding: 10px 20px; text-decoration: none; color: #000; border-radius: 5px; font-weight: bold;">
+                        View Requisition
+                    </a>
+                    <br/><br/>
+                    Regards,<br/>
+                    ${object.company_id.name}
+                </p>
+            </div>
+        </field>
+    </record>
+
+    <!-- Template for Completion -->
+    <record id="email_template_approval_complete" model="mail.template">
+        <field name="name">Requisition: Fully Approved</field>
+        <field name="model_id" ref="model_approval_request"/>
+        <field name="subject">Requisition Fully Approved: ${object.name}</field>
+        <field name="email_to">${object.request_owner_id.work_email}</field>
+        <field name="body_html" type="html">
+            <div style="margin: 0px; padding: 0px;">
+                <p style="margin: 0px; padding: 0px; font-size: 13px;">
+                    Dear ${object.request_owner_id.name},<br/><br/>
+                    Your requisition <strong>${object.name}</strong> has been fully approved.
+                    <br/><br/>
+                    <strong>PR Number:</strong> ${object.pr_number}<br/>
+                    <strong>Total Amount:</strong> ${object.x_studio_total_amount} ${object.company_id.currency_id.symbol}
+                    <br/><br/>
+                    <a href="/web#id=${object.id}&amp;model=approval.request&amp;view_type=form" 
+                       style="background-color: #F5C518; padding: 10px 20px; text-decoration: none; color: #000; border-radius: 5px; font-weight: bold;">
+                        Review Approved Requisition
+                    </a>
+                    <br/><br/>
+                    Regards,<br/>
+                    ${object.company_id.name}
+                </p>
+            </div>
+        </field>
+    </record>
+
+    <!-- Mail Activity Type -->
+    <record id="mail_activity_requisition_approval" model="mail.activity.type">
+        <field name="name">Requisition Approval</field>
+        <field name="icon">fa-check-square-o</field>
+        <field name="res_model_id" ref="model_approval_request"/>
+    </record>
+</odoo>

@@ -11,7 +11,7 @@ interface RightSidebarProps {
 }
 
 const commonApps = [
-    { id: 'approvals', name: 'Approvals', icon: CheckSquare },
+    { id: 'approvals', name: 'Requisition', icon: CheckSquare },
     { id: 'expenses', name: 'Expenses', icon: FileSpreadsheet },
     { id: 'leave', name: 'Leave Request', icon: Calendar },
     { id: 'onduty', name: 'On Duty', icon: Clock },

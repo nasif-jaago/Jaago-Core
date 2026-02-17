@@ -6,7 +6,7 @@ import {
     Package, DoorOpen, HelpCircle, Wrench,
     Users2, LineChart, Target, CreditCard,
     ShoppingCart, Calculator, Hourglass, Folder,
-    Contact, Award, CheckCircle2, Bot
+    Contact, Award, CheckCircle2, Bot, Mail, Lock, Eye, EyeOff, LogOut
 } from 'lucide-react';
 
 interface RightPanelProps {
@@ -18,7 +18,7 @@ interface RightPanelProps {
 }
 
 const commonApps = [
-    { id: 'approvals', name: 'Approvals', icon: CheckCircle },
+    { id: 'approvals', name: 'Requisition', icon: CheckCircle },
     { id: 'expenses', name: 'Expenses', icon: Receipt },
     { id: 'leave', name: 'Leave Request', icon: Calendar },
     { id: 'onduty', name: 'On Duty', icon: Clock },
@@ -33,6 +33,7 @@ const hrModules = [
     { id: 'payroll', name: 'Payroll', icon: Banknote },
     { id: 'recruitment', name: 'Recruitment', icon: UserPlus },
     { id: 'appraisals', name: 'Appraisals', icon: Award },
+    { id: 'appraisal-360-logs', name: '360 Feedback', icon: UserPlus, openInNewTab: true },
     { id: 'employees', name: 'Employees', icon: Users2 },
 ];
 
@@ -62,6 +63,254 @@ const itModules = [
 const investmentModules = [
     { id: 'crm', name: 'CRM', icon: Target },
 ];
+
+const GoogleIntegrationSection: React.FC = () => {
+    const [isLoggedIn, setIsLoggedIn] = React.useState(() => !!localStorage.getItem('google_auth'));
+    const [showLoginModal, setShowLoginModal] = React.useState(false);
+    const [activeWidget, setActiveWidget] = React.useState<'gmail' | 'calendar' | null>(null);
+    const [email, setEmail] = React.useState('');
+    const [password, setPassword] = React.useState('');
+    const [showPassword, setShowPassword] = React.useState(false);
+    const [isLoading, setIsLoading] = React.useState(false);
+
+    const handleLogin = () => {
+        if (email && password) {
+            setIsLoading(true);
+            // Simulate API delay
+            setTimeout(() => {
+                localStorage.setItem('google_auth', JSON.stringify({ email }));
+                setIsLoggedIn(true);
+                setShowLoginModal(false);
+                setIsLoading(false);
+            }, 1500);
+        }
+    };
+
+    const toggleWidget = (type: 'gmail' | 'calendar') => {
+        if (!isLoggedIn) {
+            setActiveWidget(type);
+            setShowLoginModal(true);
+        } else {
+            setActiveWidget(activeWidget === type ? null : type);
+        }
+    };
+
+    return (
+        <>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div
+                    className="card-hover"
+                    onClick={() => toggleWidget('gmail')}
+                    style={{
+                        flex: 1,
+                        padding: '10px 14px',
+                        borderRadius: '12px',
+                        background: 'var(--gmail-primary)',
+                        color: '#fff',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        border: 'none',
+                    }}
+                >
+                    <Mail size={14} color="#fff" />
+                    <p style={{ fontSize: '0.7rem', fontWeight: 800 }}>Gmail</p>
+                </div>
+                <div
+                    className="card-hover"
+                    onClick={() => toggleWidget('calendar')}
+                    style={{
+                        flex: 1,
+                        padding: '10px 14px',
+                        borderRadius: '12px',
+                        background: 'var(--google-primary)',
+                        color: '#fff',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        border: 'none',
+                    }}
+                >
+                    <Calendar size={14} color="#fff" />
+                    <p style={{ fontSize: '0.7rem', fontWeight: 800 }}>Calendar</p>
+                </div>
+            </div>
+
+            {/* Login Modal */}
+            {showLoginModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)',
+                    zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '20px'
+                }}>
+                    <div className="glass-panel" style={{ width: '100%', maxWidth: '360px', padding: '2rem', border: '1px solid var(--primary)' }}>
+                        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                            <div style={{ width: '48px', height: '48px', background: 'var(--primary-gradient)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                                <Lock size={20} color="#000" />
+                            </div>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>Google Login</h3>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Sign in to access your {activeWidget}</p>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Email Address</label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="yourname@gmail.com"
+                                    style={{
+                                        padding: '12px',
+                                        background: 'var(--input-bg)',
+                                        border: '1px solid var(--border)',
+                                        borderRadius: '10px',
+                                        color: 'var(--text-main)',
+                                        fontSize: '0.85rem'
+                                    }}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Password</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="Enter password"
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            paddingRight: '40px',
+                                            background: 'var(--input-bg)',
+                                            border: '1px solid var(--border)',
+                                            borderRadius: '10px',
+                                            color: 'var(--text-main)',
+                                            fontSize: '0.85rem'
+                                        }}
+                                    />
+                                    <button
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                                    >
+                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
+                                </div>
+                            </div>
+                            <button
+                                className="btn-primary"
+                                onClick={handleLogin}
+                                disabled={isLoading}
+                                style={{
+                                    padding: '12px',
+                                    marginTop: '1rem',
+                                    fontWeight: 800,
+                                    borderRadius: '10px',
+                                    position: 'relative',
+                                    opacity: isLoading ? 0.7 : 1,
+                                    cursor: isLoading ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                {isLoading ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                        <div className="spinner-small" />
+                                        CONNECTING...
+                                    </div>
+                                ) : 'CONNECT ACCOUNT'}
+                            </button>
+                            <button
+                                onClick={() => setShowLoginModal(false)}
+                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
+                            >
+                                CANCEL
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Widgets */}
+            {isLoggedIn && activeWidget === 'gmail' && (
+                <div className="fade-in" style={{
+                    marginTop: '0.5rem',
+                    padding: '12px',
+                    borderRadius: '16px',
+                    background: 'var(--gmail-primary-soft)',
+                    border: '1px solid var(--gmail-primary-soft)'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <p style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--gmail-primary)', margin: 0 }}>GMAIL</p>
+                            <span style={{ fontSize: '0.6rem', color: 'var(--gmail-primary)', background: 'var(--gmail-primary-soft)', padding: '2px 6px', borderRadius: '4px' }}>3 New</span>
+                        </div>
+                        <button
+                            onClick={() => { localStorage.removeItem('google_auth'); setIsLoggedIn(false); }}
+                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+                            title="Sign Out"
+                        >
+                            <LogOut size={12} />
+                        </button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {[
+                            { from: 'Korvi Rakshand', subject: 'Project Update', time: '10m ago' },
+                            { from: 'Google Calendar', subject: 'Invitation: Weekly Sync', time: '1h ago' },
+                            { from: 'Slack Notifications', subject: 'You have a new mention', time: '2h ago' }
+                        ].map((mail, i) => (
+                            <div key={i} style={{ padding: '8px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: 700, margin: 0 }}>{mail.from}</p>
+                                    <p style={{ fontSize: '0.6rem', color: 'var(--text-muted)', margin: 0 }}>{mail.time}</p>
+                                </div>
+                                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mail.subject}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {isLoggedIn && activeWidget === 'calendar' && (
+                <div className="fade-in" style={{
+                    marginTop: '0.5rem',
+                    padding: '12px',
+                    borderRadius: '16px',
+                    background: 'var(--google-primary-soft)',
+                    border: '1px solid var(--google-primary-soft)'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <p style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--google-primary)', margin: 0 }}>CALENDAR</p>
+                        <button
+                            onClick={() => { localStorage.removeItem('google_auth'); setIsLoggedIn(false); }}
+                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+                            title="Sign Out"
+                        >
+                            <LogOut size={12} />
+                        </button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {[
+                            { title: 'Project Review', time: '11:00 AM - 12:00 PM', status: 'Confirmed' },
+                            { title: 'HR Strategy', time: '02:30 PM - 03:30 PM', status: 'Pending' },
+                            { title: 'Team Catch-up', time: '04:00 PM - 04:30 PM', status: 'Confirmed' }
+                        ].map((meeting, i) => (
+                            <div key={i} style={{ padding: '8px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', borderLeft: '3px solid var(--google-primary)' }}>
+                                <p style={{ fontSize: '0.75rem', fontWeight: 700, margin: 0 }}>{meeting.title}</p>
+                                <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '2px 0' }}>{meeting.time}</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                                    <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: meeting.status === 'Confirmed' ? '#22c55e' : '#f59e0b' }} />
+                                    <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{meeting.status}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </>
+    );
+};
 
 const mockLogs = [
     { id: 1, event: 'Odoo Account move sync', status: 'Success', time: '2 mins ago', color: '#22c55e' },
@@ -138,7 +387,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ activeTab, onModuleClick, onOdo
             <div style={{ marginBottom: '1.5rem' }}>
                 <h3 style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.8 }}>
                     <div style={{ width: '3px', height: '12px', background: 'var(--primary)', borderRadius: '2px' }} />
-                    CHAT
+                    CHAT & APPS
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {/* Odoo Discuss */}
@@ -184,6 +433,9 @@ const RightPanel: React.FC<RightPanelProps> = ({ activeTab, onModuleClick, onOdo
                             <p style={{ fontSize: '0.7rem', fontWeight: 800 }}>Google Chat</p>
                         </div>
                     </div>
+
+                    {/* Gmail & Calendar Integration */}
+                    <GoogleIntegrationSection />
                 </div>
             </div>
 

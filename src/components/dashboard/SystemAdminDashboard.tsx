@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
     Users, Shield, Settings, UserPlus, Search,
-    RefreshCw, Lock, Cpu, Globe,
+    RefreshCw, Lock, Cpu,
     ChevronRight, CheckCircle2, AlertCircle, X, Mail, Send, Building
 } from 'lucide-react';
 import { fetchSettingsStats } from '../../api/SettingsService';
@@ -13,7 +13,7 @@ import SupabaseUserModal from './SupabaseUserModal';
 const SystemAdminDashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any>(null);
-    const [activeSection, setActiveSection] = useState<'users' | 'companies' | 'supabase'>('users');
+    const [activeSection, setActiveSection] = useState<'users' | 'companies' | 'supabase' | 'modules'>('users');
     const [searchQuery, setSearchQuery] = useState('');
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');
@@ -92,6 +92,11 @@ const SystemAdminDashboard: React.FC = () => {
         String(c.email || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const filteredModules = modules.filter((m: any) =>
+        String(m.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(m.shortdesc || '').toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     return (
         <div className="system-admin-dashboard fade-in" style={{ padding: '24px', background: 'transparent', minHeight: '100vh', fontFamily: 'var(--font-main)', position: 'relative' }}>
 
@@ -125,91 +130,119 @@ const SystemAdminDashboard: React.FC = () => {
             )}
 
             {/* Header / Top Control Bar */}
-            <div style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                    <h1 style={{ fontSize: '2.2rem', fontWeight: 900, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '16px', letterSpacing: '-1px', fontFamily: "'Playfair Display', serif" }}>
-                        <Settings className="text-indigo-600" size={32} color="var(--primary)" /> SYSTEM ADMINISTRATION
+                    <h1 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '12px', letterSpacing: '-0.5px', fontFamily: "'Playfair Display', serif" }}>
+                        <Settings className="text-indigo-600" size={26} color="var(--primary)" /> SYSTEM ADMINISTRATION
                     </h1>
-                    <p style={{ color: 'var(--text-dim)', fontSize: '0.95rem', marginTop: '8px', fontWeight: 500 }}>Technical control panel & user management</p>
+                    <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem', marginTop: '4px', fontWeight: 500 }}>Technical control panel & user management</p>
                 </div>
-                <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ display: 'flex', gap: '12px' }}>
                     <button onClick={loadData} className="btn-secondary glass-panel" style={{
-                        padding: '12px 20px', background: 'var(--input-bg)', border: '1px solid var(--border-glass)', borderRadius: '14px',
-                        display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700,
+                        padding: '8px 16px', background: 'var(--input-bg)', border: '1px solid var(--border-glass)', borderRadius: '10px',
+                        display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700,
                         color: 'var(--text-main)', opacity: loading ? 0.6 : 1
                     }}>
-                        <RefreshCw size={16} className={loading ? 'spin' : ''} /> Sync All
+                        <RefreshCw size={14} className={loading ? 'spin' : ''} /> Sync All
                     </button>
                     <button onClick={() => setIsInviteModalOpen(true)} className="btn-3d" style={{
-                        padding: '12px 24px', fontSize: '0.85rem'
+                        padding: '8px 16px', fontSize: '0.75rem'
                     }}>
-                        <UserPlus size={16} /> Invite Admin
+                        <UserPlus size={14} /> Invite Admin
                     </button>
                 </div>
             </div>
 
             {/* Quick Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '40px' }}>
-                <div className="glass-panel" style={{ padding: '24px', borderRadius: '24px', position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ color: 'var(--primary)', marginBottom: '16px' }}><Users size={24} /></div>
-                    <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-main)' }}>{users.length}</div>
-                    <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '1px' }}>ODOO USERS</p>
-                    <div style={{ position: 'absolute', top: '-10px', right: '-10px', width: '60px', height: '60px', background: 'var(--primary-glow)', filter: 'blur(30px)', opacity: 0.1 }} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '32px' }}>
+                <div
+                    className="glass-panel"
+                    onClick={() => setActiveSection('users')}
+                    style={{ padding: '20px', borderRadius: '20px', position: 'relative', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.2s ease' }}
+                >
+                    <div style={{ color: 'var(--primary)', marginBottom: '12px' }}><Users size={20} /></div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)' }}>{users.length + supabaseUsers.length}</div>
+                    <p style={{ color: 'var(--text-dim)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.5px' }}>TOTAL DIRECTORY</p>
+                    <div style={{ position: 'absolute', top: '-10px', right: '-10px', width: '50px', height: '50px', background: 'var(--primary-glow)', filter: 'blur(25px)', opacity: 0.1 }} />
                 </div>
-                <div className="glass-panel" style={{ padding: '24px', borderRadius: '24px' }}>
-                    <div style={{ color: '#10b981', marginBottom: '16px' }}><Building size={24} /></div>
-                    <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-main)' }}>{companies.length}</div>
-                    <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '1px' }}>TOTAL COMPANIES</p>
+                <div
+                    className="glass-panel"
+                    onClick={() => setActiveSection('companies')}
+                    style={{ padding: '20px', borderRadius: '20px', cursor: 'pointer' }}
+                >
+                    <div style={{ color: '#10b981', marginBottom: '12px' }}><Building size={20} /></div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)' }}>{companies.length}</div>
+                    <p style={{ color: 'var(--text-dim)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.5px' }}>ODOO ENTITIES</p>
                 </div>
-                <div className="glass-panel" style={{ padding: '24px', borderRadius: '24px' }}>
-                    <div style={{ color: '#f59e0b', marginBottom: '16px' }}><Cpu size={24} /></div>
-                    <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-main)' }}>{modules.length}</div>
-                    <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '1px' }}>SYS MODULES</p>
+                <div
+                    className="glass-panel"
+                    onClick={() => setActiveSection('modules')}
+                    style={{ padding: '20px', borderRadius: '20px', cursor: 'pointer' }}
+                >
+                    <div style={{ color: '#f59e0b', marginBottom: '12px' }}><Cpu size={20} /></div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)' }}>{modules.length}</div>
+                    <p style={{ color: 'var(--text-dim)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.5px' }}>SYSTEM MODULES</p>
                 </div>
-                <div className="glass-panel" style={{ padding: '24px', borderRadius: '24px' }}>
-                    <div style={{ color: '#3b82f6', marginBottom: '16px' }}><Globe size={24} /></div>
-                    <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-main)' }}>Live</div>
-                    <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '1px' }}>ERP STATUS</p>
+                <div
+                    className="glass-panel"
+                    onClick={() => { setActiveSection('users'); setSearchQuery(''); }}
+                    style={{ padding: '20px', borderRadius: '20px', cursor: 'pointer' }}
+                >
+                    <div style={{ color: '#3b82f6', marginBottom: '12px' }}><Shield size={20} /></div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)' }}>{users.length}</div>
+                    <p style={{ color: 'var(--text-dim)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.5px' }}>ODOO USERS</p>
                 </div>
             </div>
 
             {/* Tabs Trigger */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
                 <button
                     onClick={() => setActiveSection('users')}
                     style={{
-                        padding: '10px 20px', borderRadius: '12px', cursor: 'pointer',
+                        padding: '8px 16px', borderRadius: '10px', cursor: 'pointer',
                         background: activeSection === 'users' ? 'var(--primary)' : 'var(--input-bg)',
                         color: activeSection === 'users' ? '#000' : 'var(--text-main)',
                         border: '1px solid var(--border-glass)',
-                        fontWeight: 700, fontSize: '0.85rem'
+                        fontWeight: 700, fontSize: '0.75rem'
                     }}
                 >
-                    Odoo Users
-                </button>
-                <button
-                    onClick={() => setActiveSection('companies')}
-                    style={{
-                        padding: '10px 20px', borderRadius: '12px', cursor: 'pointer',
-                        background: activeSection === 'companies' ? 'var(--primary)' : 'var(--input-bg)',
-                        color: activeSection === 'companies' ? '#000' : 'var(--text-main)',
-                        border: '1px solid var(--border-glass)',
-                        fontWeight: 700, fontSize: '0.85rem'
-                    }}
-                >
-                    Odoo Companies
+                    User Directory
                 </button>
                 <button
                     onClick={() => setActiveSection('supabase')}
                     style={{
-                        padding: '10px 20px', borderRadius: '12px', cursor: 'pointer',
+                        padding: '8px 16px', borderRadius: '10px', cursor: 'pointer',
                         background: activeSection === 'supabase' ? 'var(--primary)' : 'var(--input-bg)',
                         color: activeSection === 'supabase' ? '#000' : 'var(--text-main)',
                         border: '1px solid var(--border-glass)',
-                        fontWeight: 700, fontSize: '0.85rem'
+                        fontWeight: 700, fontSize: '0.75rem'
                     }}
                 >
                     Supabase Auth
+                </button>
+                <button
+                    onClick={() => setActiveSection('companies')}
+                    style={{
+                        padding: '8px 16px', borderRadius: '10px', cursor: 'pointer',
+                        background: activeSection === 'companies' ? 'var(--primary)' : 'var(--input-bg)',
+                        color: activeSection === 'companies' ? '#000' : 'var(--text-main)',
+                        border: '1px solid var(--border-glass)',
+                        fontWeight: 700, fontSize: '0.75rem'
+                    }}
+                >
+                    Entities
+                </button>
+                <button
+                    onClick={() => setActiveSection('modules')}
+                    style={{
+                        padding: '8px 16px', borderRadius: '10px', cursor: 'pointer',
+                        background: activeSection === 'modules' ? 'var(--primary)' : 'var(--input-bg)',
+                        color: activeSection === 'modules' ? '#000' : 'var(--text-main)',
+                        border: '1px solid var(--border-glass)',
+                        fontWeight: 700, fontSize: '0.75rem'
+                    }}
+                >
+                    Modules
                 </button>
             </div>
 
@@ -220,7 +253,7 @@ const SystemAdminDashboard: React.FC = () => {
                 <div className="glass-panel" style={{ borderRadius: '24px', overflow: 'hidden' }}>
                     <div style={{ padding: '24px', borderBottom: '1px solid var(--border-glass)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>
-                            {activeSection === 'users' ? 'Odoo User Directory' : activeSection === 'companies' ? 'Company Administration' : 'Supabase Authentication Users'}
+                            {activeSection === 'users' ? 'User Directory' : activeSection === 'companies' ? 'Company Administration' : activeSection === 'modules' ? 'System Modules' : 'Supabase Authentication Users'}
                         </h3>
                         <div style={{ position: 'relative' }}>
                             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -242,59 +275,96 @@ const SystemAdminDashboard: React.FC = () => {
                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <thead style={{ background: 'var(--input-bg)' }}>
                                     <tr style={{ textAlign: 'left' }}>
-                                        <th style={{ padding: '16px', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Account</th>
-                                        <th style={{ padding: '16px', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Apps Access</th>
-                                        <th style={{ padding: '16px', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Status</th>
-                                        <th style={{ padding: '16px', textAlign: 'right' }}>Action</th>
+                                        <th style={{ padding: '12px 16px', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Identity</th>
+                                        <th style={{ padding: '12px 16px', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Type</th>
+                                        <th style={{ padding: '12px 16px', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</th>
+                                        <th style={{ padding: '12px 16px', textAlign: 'right' }}>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    {/* Merged View: Odoo Users with Tags */}
                                     {filteredUsers.map((user: any, i: number) => (
                                         <tr key={i} style={{ borderBottom: '1px solid var(--border-glass)' }} className="user-row">
-                                            <td style={{ padding: '16px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--primary-gradient)', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.1rem' }}>
+                                            <td style={{ padding: '12px 16px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--primary-gradient)', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.9rem' }}>
                                                         {user.name?.charAt(0)}
                                                     </div>
                                                     <div>
-                                                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)' }}>{user.name}</div>
-                                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{user.login}</div>
+                                                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>{user.name}</div>
+                                                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{user.login}</div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td style={{ padding: '16px' }}>
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: '300px' }}>
-                                                    {(user.app_names || []).slice(0, 3).map((name: string, idx: number) => (
-                                                        <span key={idx} style={{
-                                                            fontSize: '0.65rem', padding: '2px 8px', borderRadius: '4px',
-                                                            background: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', fontWeight: 600,
-                                                            border: '1px solid rgba(99, 102, 241, 0.2)'
-                                                        }}>
-                                                            {name.split('/').pop()}
-                                                        </span>
-                                                    ))}
-                                                    {user.app_names?.length > 3 && (
-                                                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', padding: '2px 4px' }}>+{user.app_names.length - 3} more</span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '16px' }}>
+                                            <td style={{ padding: '12px 16px' }}>
                                                 <span style={{
-                                                    padding: '4px 12px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800,
+                                                    padding: '2px 8px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 900,
+                                                    background: 'rgba(245, 197, 24, 0.1)', color: '#f5c518',
+                                                    border: '1px solid rgba(245, 197, 24, 0.2)',
+                                                    boxShadow: '0 0 10px rgba(245, 197, 24, 0.4)'
+                                                }}>
+                                                    ODOO USER
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '12px 16px' }}>
+                                                <span style={{
+                                                    padding: '2px 8px', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 800,
                                                     background: user.active ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                                    color: user.active ? '#10b981' : '#ef4444',
-                                                    border: `1px solid ${user.active ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
+                                                    color: user.active ? '#10b981' : '#ef4444'
                                                 }}>
                                                     {user.active ? 'ACTIVE' : 'DEACTIVATED'}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '16px', textAlign: 'right' }}>
-                                                <button onClick={() => setSelectedUser(user)} className="btn-secondary" style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem' }}>
-                                                    Settings
+                                            <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                                                <button onClick={() => setSelectedUser(user)} className="btn-secondary" style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem' }}>
+                                                    Manage
                                                 </button>
                                             </td>
                                         </tr>
                                     ))}
+                                    {/* Merge Supabase users if in filtered context or separate toggle */}
+                                    {supabaseUsers
+                                        .filter(u => (u.email || '').toLowerCase().includes(searchQuery.toLowerCase()))
+                                        .slice(0, 5)
+                                        .map((u, i) => (
+                                            <tr key={`sb-${i}`} style={{ borderBottom: '1px solid var(--border-glass)' }} className="user-row">
+                                                <td style={{ padding: '12px 16px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                        <div style={{
+                                                            width: '32px', height: '32px', borderRadius: '8px',
+                                                            background: 'rgba(16, 185, 129, 0.2)', color: '#10b981',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            fontWeight: 800, fontSize: '0.9rem',
+                                                            border: '1px solid rgba(16, 185, 129, 0.3)'
+                                                        }}>
+                                                            {u.email?.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>{u.email}</div>
+                                                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{u.id.slice(0, 8)}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '12px 16px' }}>
+                                                    <span style={{
+                                                        padding: '2px 8px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 900,
+                                                        background: 'rgba(16, 185, 129, 0.1)', color: '#10b981',
+                                                        border: '1px solid rgba(16, 185, 129, 0.2)',
+                                                        boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)'
+                                                    }}>
+                                                        SUPABASE AUTH
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '12px 16px' }}>
+                                                    <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 800, color: '#10b981' }}>VERIFIED</span>
+                                                </td>
+                                                <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                                                    <button onClick={() => setSelectedSupabaseUser(u)} className="btn-secondary" style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.7rem' }}>
+                                                        Manage
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
                                 </tbody>
                             </table>
                         )}
@@ -325,6 +395,34 @@ const SystemAdminDashboard: React.FC = () => {
                                             </td>
                                             <td style={{ padding: '16px', fontSize: '0.85rem', color: 'var(--text-dim)' }}>
                                                 {comp.city ? `${comp.city}, ${comp.country_id?.[1]}` : comp.country_id?.[1] || '--'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+
+                        {activeSection === 'modules' && (
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead style={{ background: 'var(--input-bg)' }}>
+                                    <tr style={{ textAlign: 'left' }}>
+                                        <th style={{ padding: '16px', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Module Name</th>
+                                        <th style={{ padding: '16px', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Description</th>
+                                        <th style={{ padding: '16px', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Author</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredModules.map((m: any, i: number) => (
+                                        <tr key={i} style={{ borderBottom: '1px solid var(--border-glass)' }} className="user-row">
+                                            <td style={{ padding: '16px' }}>
+                                                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>{m.shortdesc || m.name}</div>
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{m.name}</div>
+                                            </td>
+                                            <td style={{ padding: '16px', fontSize: '0.8rem', color: 'var(--text-dim)', maxWidth: '300px' }}>
+                                                {m.shortdesc}
+                                            </td>
+                                            <td style={{ padding: '16px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                {m.author}
                                             </td>
                                         </tr>
                                     ))}
@@ -453,7 +551,7 @@ const SystemAdminDashboard: React.FC = () => {
             {isInviteModalOpen && (
                 <div style={{
                     position: 'fixed', inset: 0, zIndex: 2000,
-                    background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+                    background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
                 }}>
                     <div className="glass-panel fade-in" style={{

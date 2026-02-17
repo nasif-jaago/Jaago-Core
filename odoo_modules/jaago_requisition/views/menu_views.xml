@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Top-level menu is already in 'approvals' module -->
+    
+    <!-- Rule Configuration Menu (Admin Only) -->
+    <menuitem id="menu_studio_approval_rule"
+              name="Approval Rules"
+              parent="approvals.approvals_menu_config"
+              action="studio_approval_rule_action"
+              groups="group_requisition_admin"
+              sequence="20"/>
+</odoo>

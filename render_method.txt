@@ -1,0 +1,766 @@
+renderTemplateToHTML: (blocks: any[], variables: { [key: string]: string }): string => {
+        if (!Array.isArray(blocks)) return blocks || '';
+
+        const replaceVars = (text: string) => {
+            let result = text || '';
+            Object.entries(variables).forEach(([key, value]) => {
+                const regex = new RegExp(`{{${key}}}`, 'g');
+                result = result.replace(regex, value || '');
+            });
+            // Odoo style variables fallback
+            result = result.replace(/{{object\.employee_id\.name}}/g, variables.employee_name || '')
+                .replace(/{{object\.name}}/g, variables.employee_name || '');
+            return result;
+        };
+
+        const renderBlock = (block: any) => {
+            const style = block.style || {};
+            const styleStr = Object.entries(style)
+                .map(([k, v]) => `${k.replace(/[A-Z]/g, m => `-${m.toLowerCase()}`)}:${v}`)
+                .join(';');
+
+            switch (block.type) {
+                case 'heading':
+                    return `<h1 style="${styleStr}; margin: 20px 0;">${replaceVars(block.content)}</h1>`;
+                case 'text':
+                case 'variable':
+                    return `<p style="${styleStr}; line-height: 1.6; margin: 10px 0; white-space: pre-wrap;">${replaceVars(block.content)}</p>`;
+                case 'button':
+                case 'secure_link':
+                    const buttonFormId = block.formId;
+                    const btnLink = buttonFormId ? `${window.location.origin}/?view=form-preview&id=${buttonFormId}&token=${variables.secure_token}&appraisal_id=${variables.appraisal_id}` : (block.url ? replaceVars(block.url) : variables.secure_link);
+                    const bgColor = style.backgroundColor || '#22c55e';
+                    const color = style.color || '#ffffff';
+                    return `
+                        <div style="text-align: ${style.textAlign || 'center'}; margin: 30px 0;">
+                            <a href="${btnLink}" style="background-color: ${bgColor}; color: ${color}; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 16px;">
+                                ${replaceVars(block.content)}
+                            </a>
+                        </div>`;
+                case 'divider':
+                    return `<hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">`;
+                case 'spacer':
+                    return `<div style="height: ${style.padding || '20px'};"></div>`;
+                case 'image':
+                    return `<div style="text-align: ${style.textAlign || 'center'}; margin: 20px 0;"><img src="${block.content}" style="max-width: 100%; border-radius: ${style.borderRadius || '0'};" /></div>`;
+                case 'signature':
+                    return `<div style="${styleStr}; margin-top: 40px; border-top: 1px solid #f1f5f9; padding-top: 20px; font-style: italic; color: #64748b;">${replaceVars(block.content).replace(/\n/g, '<br/>')}</div>`;
+                case 'document':
+                    return `
+                        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin: 20px 0; display: flex; align-items: center; gap: 12px;">
+                            <div style="color: #3b82f6; font-weight: bold;">📄 DOC:</div>
+                            <div style="color: #1e293b; font-size: 14px;">${block.content}</div>
+                        </div>`;
+                case 'three_sixty_invite':
+                    let invites = [];
+                    try {
+                        invites = typeof block.content === 'string' ? JSON.parse(block.content) : (Array.isArray(block.content) ? block.content : []);
+                    } catch (e) {
+                        console.error('Failed to parse 360 invites', e);
+                    }
+
+                    // Filter for specific recipient if email provided
+                    const filteredInvites = variables.recipient_email
+                        ? invites.filter((inv: any) => inv.email === variables.recipient_email)
+                        : invites;
+
+                    // If we expected a specific recipient but they aren't in the list, 
+                    // we show a fallback row so the table isn't empty if we intended to send to them
+                    const finalInvites = (filteredInvites.length === 0 && variables.recipient_email)
+                        ? [{ name: variables.employee_name || 'N/A', email: variables.recipient_email }]
+                        : filteredInvites;
+
+                    if (finalInvites.length === 0) return '';
+
+                    const tableRows = finalInvites.map((inv: any) => `
+                        <tr>
+                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #1e293b;">${inv.name || 'N/A'}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #475569;">${inv.email || 'N/A'}</td>
+                        </tr>
+                    `).join('');
+
+                    return `
+                        <div style="margin: 30px 0; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                            <div style="background: #f8fafc; padding: 16px; border-bottom: 1px solid #e2e8f0;">
+                                <h3 style="margin: 0; color: #1e293b; font-size: 16px;">Peer Feedback Request List</h3>
+                            </div>
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #fdfdfd;">
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Employee Name</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Work Email</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${tableRows}
+                                </tbody>
+                            </table>
+                            <div style="padding: 24px; text-align: center; background: #f8fafc;">
+                                <p style="margin: 0 0 16px 0; font-size: 14px; color: #64748b;">Please click the button below to submit your feedback for the above colleagues.</p>
+                                <a href="${`${window.location.origin}/?view=360-quick-inviter&token=${variables.secure_token}&appraisal_id=${variables.appraisal_id}&giver=${variables.recipient_email}`}" style="background-color: #f5c518; color: #000000; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: 800; display: inline-block; font-size: 15px; box-shadow: 0 4px 12px rgba(245, 197, 24, 0.3);">
+                                    SUBMIT FEEDBACK NOW
+                                </a>
+                            </div>
+                        </div>`;
+                default:
+                    return `<p>${replaceVars(block.content || '')}</p>`;
+            }
+        };
+
+        const bodyContent = blocks.map(renderBlock).join('');
+
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Appraisal Notification</title>
+            </head>
+            <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                    <tr>
+                        <td align="center" style="padding: 40px 0;">
+                            <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+                                <!-- Header -->
+                                <tr>
+                                    <td align="center" style="padding: 40px 40px 0 40px;">
+                                        <div style="color: #1e293b; font-weight: 900; font-size: 24px; letter-spacing: 2px;">JAAGO FOUNDATION</div>
+                                        <div style="height: 4px; width: 60px; background: #22c55e; margin: 12px auto; border-radius: 2px;"></div>
+                                    </td>
+                                </tr>
+                                <!-- Main Content -->
+                                <tr>
+                                    <td style="padding: 40px; color: #334155;">
+                                        ${bodyContent}
+                                    </td>
+                                </tr>
+                                <!-- Footer -->
+                                <tr>
+                                    <td style="padding: 30px 40px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
+                                        <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.5;">
+                                            This is an automated system message from JAAGO Foundation Human Resources.<br/>
+                                            Confidential Performance Appraisal System.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+        `;
+    },
+
+    fetchAppraisals: async (tabType: 'self' | 'supervisor' | '360'): Promise<OdooResponse<AppraisalRecord[]>> => {
+        try {
+            const model = AppraisalService.MODEL_MAP[tabType];
+            const records = await odooCall(model, 'search_read', [[]], {
+                fields: [
+                    'display_name', 'employee_id', 'date_close', 'state', 'write_date', 'note',
+                    'department_id', 'manager_ids',
+                    'x_studio_remarks', 'x_studio_input_hike_percentage', 'x_studio_computed_new_salary', 'x_studio_proposed_designation_1'
+                ],
+                order: 'write_date desc'
+            });
+
+            return {
+                success: true,
+                data: records,
+                syncTime: new Date().toISOString()
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                error: err.message,
+                syncTime: new Date().toISOString()
+            };
+        }
+    },
+
+    fetchAppraisalById: async (tabType: 'self' | 'supervisor' | '360', id: number): Promise<OdooResponse<AppraisalRecord>> => {
+        try {
+            const model = AppraisalService.MODEL_MAP[tabType];
+            const records = await odooCall(model, 'read', [[id]], {
+                fields: [
+                    'display_name', 'employee_id', 'date_close', 'state', 'write_date', 'note',
+                    'department_id', 'manager_ids',
+                    'x_studio_remarks', 'x_studio_input_hike_percentage', 'x_studio_computed_new_salary', 'x_studio_proposed_designation_1'
+                ]
+            });
+
+            if (!records || records.length === 0) throw new Error('Appraisal not found');
+
+            return {
+                success: true,
+                data: records[0],
+                syncTime: new Date().toISOString()
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                error: err.message,
+                syncTime: new Date().toISOString()
+            };
+        }
+    },
+
+    fetchEmployees: async (search?: string): Promise<OdooResponse<OdooEmployee[]>> => {
+        try {
+            const domain: any[] = [['active', '=', true]];
+            if (search) {
+                domain.push(['name', 'ilike', search]);
+            }
+
+            const records = await odooCall('hr.employee', 'search_read', [domain], {
+                fields: ['name', 'work_email', 'next_appraisal_date', 'parent_id'],
+                order: 'name asc'
+            });
+
+            return {
+                success: true,
+                data: records,
+                syncTime: new Date().toISOString()
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                error: err.message,
+                syncTime: new Date().toISOString()
+            };
+        }
+    },
+
+    createAppraisal: async (tabType: 'self' | 'supervisor' | '360', data: any): Promise<OdooResponse<number>> => {
+        try {
+            const model = AppraisalService.MODEL_MAP[tabType];
+
+            if (!data.employee_id) throw new Error('Employee ID is required.');
+            if (!data.display_name) throw new Error('Appraisal Period/Name is required.');
+
+            const id = await odooCall(model, 'create', [data]);
+
+            if (!id) throw new Error('Odoo created the record but returned no ID.');
+
+            return {
+                success: true,
+                data: id,
+                syncTime: new Date().toISOString()
+            };
+        } catch (err: any) {
+            console.error('[AppraisalService] Creation Error:', err);
+            return {
+                success: false,
+                error: err.message || 'Unknown creation error',
+                code: err.code || 'DB_INSERT_FAILED',
+                syncTime: new Date().toISOString()
+            };
+        }
+    },
+
+    checkDuplicateAppraisal: async (employeeId: number, period: string): Promise<boolean> => {
+        try {
+            const domain = [
+                ['employee_id', '=', employeeId],
+                ['display_name', 'ilike', period],
+                ['state', 'not in', ['finalized', 'archived', 'cancel']]
+            ];
+            const records = await odooCall('hr.appraisal', 'search_count', [domain]);
+            return records > 0;
+        } catch (err) {
+            console.error('[AppraisalService] Duplicate Check Error:', err);
+            return false;
+        }
+    },
+
+    fetchEmailTemplates: async (): Promise<OdooResponse<any[]>> => {
+        try {
+            const { data, error } = await supabase
+                .from('email_templates')
+                .select('*')
+                .eq('is_active', true);
+
+            if (!error && data && data.length > 0) {
+                return {
+                    success: true,
+                    data: data,
+                    syncTime: new Date().toISOString()
+                };
+            }
+
+            const templates = await odooCall('mail.template', 'search_read', [[['model_id.model', '=', 'hr.appraisal']]], {
+                fields: ['name', 'subject', 'body_html', 'description']
+            });
+            return {
+                success: true,
+                data: templates || [],
+                syncTime: new Date().toISOString()
+            };
+        } catch (err: any) {
+            console.error('[AppraisalService] Template Fetch Error:', err);
+            return {
+                success: false,
+                error: err.message,
+                syncTime: new Date().toISOString()
+            };
+        }
+    },
+
+    saveAppraisalMetadata: async (odooId: number, templateId: number): Promise<string> => {
+        const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        try {
+            const { error } = await supabase
+                .from('appraisal_metadata')
+                .upsert({
+                    id: odooId,
+                    secure_token: token,
+                    template_id: templateId,
+                    status: 'pending_employee'
+                });
+
+            if (error) throw error;
+        } catch (err: any) {
+            console.warn('[AppraisalService] saveAppraisalMetadata fallback');
+            const storageKey = 'jaago_appraisal_metadata';
+            const existing = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            existing[odooId] = { id: odooId, secure_token: token, template_id: templateId, status: 'pending_employee' };
+            localStorage.setItem(storageKey, JSON.stringify(existing));
+        }
+        return token;
+    },
+
+    getAppraisalMetadata: async (odooId: number): Promise<any> => {
+        try {
+            const { data, error } = await supabase
+                .from('appraisal_metadata')
+                .select('*')
+                .eq('id', odooId)
+                .single();
+
+            if (error) throw error;
+            return data;
+        } catch (err: any) {
+            const existing = JSON.parse(localStorage.getItem('jaago_appraisal_metadata') || '{}');
+            return existing[odooId] || null;
+        }
+    },
+
+    saveTestEmail: async (data: any): Promise<void> => {
+        const storageKey = 'jaago_test_emails';
+        const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const newEmail = { ...data, id: Date.now(), status: 'Pending' };
+        localStorage.setItem(storageKey, JSON.stringify([newEmail, ...existing]));
+
+        await AppraisalService.logTestAction({
+            email: data.receiver_email,
+            action_type: 'Sent',
+            status: 'Success',
+            details: `Test email sent to ${data.employee_name}`
+        });
+    },
+
+    updateTestEmailStatus: async (token: string, status: string, additionalData: any = {}): Promise<void> => {
+        const storageKey = 'jaago_test_emails';
+        const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const updated = existing.map((email: any) =>
+            email.secure_token === token ? { ...email, status, ...additionalData } : email
+        );
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+    },
+
+    logTestAction: async (data: any): Promise<void> => {
+        const storageKey = 'jaago_test_activity_logs';
+        const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const newLog = { ...data, id: Date.now(), timestamp: new Date().toISOString() };
+        localStorage.setItem(storageKey, JSON.stringify([newLog, ...existing]));
+    },
+
+    getTestActionLogs: async (): Promise<any[]> => {
+        return JSON.parse(localStorage.getItem('jaago_test_activity_logs') || '[]');
+    },
+
+    saveTestAppraisalLog: async (data: any): Promise<void> => {
+        const storageKey = 'jaago_test_submissions';
+        const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        localStorage.setItem(storageKey, JSON.stringify([{ ...data, id: Date.now() }, ...existing]));
+    },
+
+    getTestAppraisalSubmissions: async (): Promise<any[]> => {
+        return JSON.parse(localStorage.getItem('jaago_test_submissions') || '[]');
+    },
+
+    saveActiveEmail: async (data: any): Promise<void> => {
+        try {
+            const { error } = await supabase
+                .from('active_emails')
+                .insert([{ ...data, status: 'Pending' }]);
+            if (error) throw error;
+        } catch (err: any) {
+            const storageKey = 'jaago_active_emails';
+            const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            const newEmail = { ...data, status: 'Pending' };
+            localStorage.setItem(storageKey, JSON.stringify([newEmail, ...existing]));
+        }
+
+        await AppraisalService.logActiveAction({
+            email_id: data.id || null,
+            email: data.receiver_email,
+            action_type: 'Sent',
+            status: 'Success',
+            details: `Active appraisal email sent to ${data.receiver_name}`
+        });
+    },
+
+    getActiveEmails: async (): Promise<any[]> => {
+        try {
+            const { data, error } = await supabase
+                .from('active_emails')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data || [];
+        } catch (err: any) {
+            return JSON.parse(localStorage.getItem('jaago_active_emails') || '[]');
+        }
+    },
+
+    updateActiveEmailStatus: async (token: string, status: string, additionalData: any = {}): Promise<void> => {
+        try {
+            const { error } = await supabase
+                .from('active_emails')
+                .update({ status, ...additionalData })
+                .eq('secure_token', token);
+            if (error) throw error;
+        } catch (err: any) {
+            const storageKey = 'jaago_active_emails';
+            const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            const updated = existing.map((email: any) =>
+                email.secure_token === token ? { ...email, status, ...additionalData } : email
+            );
+            localStorage.setItem(storageKey, JSON.stringify(updated));
+        }
+    },
+
+    logActiveAction: async (data: any): Promise<void> => {
+        // Dual Logging: Odoo Chatter + Supabase/Local
+        const appraisalId = data.appraisal_id || data.email_id;
+        if (appraisalId && appraisalId > 0) {
+            logToChatter('hr.appraisal', appraisalId, `<b>${data.action_type || 'Activity'}</b>: ${data.details}`);
+        }
+
+        try {
+            const { error } = await supabase
+                .from('active_logs')
+                .insert([{ ...data, created_at: new Date().toISOString() }]);
+            if (error) throw error;
+        } catch (err: any) {
+            const storageKey = 'jaago_active_logs';
+            const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            const newLog = { ...data, id: Date.now(), created_at: new Date().toISOString() };
+            localStorage.setItem(storageKey, JSON.stringify([newLog, ...existing]));
+        }
+    },
+
+    getActiveActionLogs: async (): Promise<any[]> => {
+        try {
+            const { data, error } = await supabase
+                .from('active_logs')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data || [];
+        } catch (err: any) {
+            return JSON.parse(localStorage.getItem('jaago_active_logs') || '[]');
+        }
+    },
+
+    saveActiveSubmission: async (data: any): Promise<void> => {
+        try {
+            const { error } = await supabase
+                .from('active_submissions')
+                .insert([data]);
+            if (error) throw error;
+        } catch (err: any) {
+            const storageKey = 'jaago_active_submissions';
+            const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            localStorage.setItem(storageKey, JSON.stringify([{ ...data, id: Date.now() }, ...existing]));
+        }
+    },
+
+    getActiveSubmissions: async (): Promise<any[]> => {
+        try {
+            const { data, error } = await supabase
+                .from('active_submissions')
+                .select('*')
+                .order('submitted_at', { ascending: false });
+            if (error) throw error;
+            return data || [];
+        } catch (err: any) {
+            return JSON.parse(localStorage.getItem('jaago_active_submissions') || '[]');
+        }
+    },
+
+    deleteActiveLogs: async (): Promise<void> => {
+        try {
+            const { error } = await supabase
+                .from('active_logs')
+                .delete()
+                .neq('id', 0);
+            if (error) throw error;
+        } catch (err: any) {
+            localStorage.removeItem('jaago_active_logs');
+        }
+    },
+
+    sendAppraisalEmail: async (appraisalId: number, templateId: number, email?: string): Promise<OdooResponse<boolean>> => {
+        try {
+            const kwargs: any = { force_send: true };
+            if (email) {
+                kwargs.email_values = { email_to: email };
+            }
+            const result = await odooCall('mail.template', 'send_mail', [templateId, appraisalId], kwargs);
+            return {
+                success: true,
+                data: !!result,
+                syncTime: new Date().toISOString()
+            };
+        } catch (err: any) {
+            console.error('[AppraisalService] Email Send Error:', err);
+            return {
+                success: false,
+                error: err.message,
+                syncTime: new Date().toISOString()
+            };
+        }
+    },
+
+    updateAppraisal: async (tabType: 'self' | 'supervisor' | '360', id: number, data: any): Promise<OdooResponse<boolean>> => {
+        try {
+            const model = AppraisalService.MODEL_MAP[tabType];
+            const success = await odooCall(model, 'write', [[id], data]);
+            return {
+                success: true,
+                data: success,
+                syncTime: new Date().toISOString()
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                error: err.message,
+                syncTime: new Date().toISOString()
+            };
+        }
+    },
+
+    deleteAppraisal: async (tabType: 'self' | 'supervisor' | '360', id: number): Promise<OdooResponse<boolean>> => {
+        try {
+            const model = AppraisalService.MODEL_MAP[tabType];
+            const success = await odooCall(model, 'unlink', [[id]]);
+            return {
+                success: true,
+                data: success,
+                syncTime: new Date().toISOString()
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                error: err.message,
+                syncTime: new Date().toISOString()
+            };
+        }
+    },
+
+    sendEmail: async (to: string, subject: string, body: string, resModel: string, resId: number, cc?: string, bcc?: string): Promise<OdooResponse<number>> => {
+        try {
+            if (!to) throw new Error('Recipient email address is missing.');
+
+            const emailData = {
+                email_from: 'nasif.kamal@jaago.com.bd',
+                email_to: to,
+                email_cc: cc,
+                email_bcc: bcc,
+                subject: subject,
+                body_html: body,
+                model: resModel,
+                res_id: resId,
+                auto_delete: false,
+                state: 'outgoing'
+            };
+
+            const id = await odooCall('mail.mail', 'create', [emailData]);
+            if (!id) throw new Error('Failed to create mail.mail record in Odoo.');
+
+            await odooCall('mail.mail', 'send', [[id]]);
+
+            return {
+                success: true,
+                data: id,
+                syncTime: new Date().toISOString()
+            };
+        } catch (err: any) {
+            console.error('[AppraisalService] sendEmail failed:', err.message);
+            return {
+                success: false,
+                error: err.message,
+                syncTime: new Date().toISOString()
+            };
+        }
+    },
+
+    fetchEmailLogs: async (type: 'outgoing' | 'incoming'): Promise<OdooResponse<EmailLog[]>> => {
+        try {
+            const model = type === 'outgoing' ? 'mail.mail' : 'mail.message';
+            const domain = type === 'outgoing' ? [] : [['message_type', '=', 'email']];
+            const fields = type === 'outgoing'
+                ? ['email_to', 'subject', 'date', 'state']
+                : ['email_from', 'subject', 'date', 'body'];
+
+            const records = await odooCall(model, 'search_read', [domain], {
+                fields,
+                limit: 20,
+                order: 'date desc'
+            });
+
+            const formattedRecords = records.map((r: any) => ({
+                id: r.id,
+                email_to: r.email_to,
+                email_from: r.email_from,
+                subject: r.subject || '(No Subject)',
+                date: r.date,
+                state: r.state,
+                body: r.body
+            }));
+
+            return {
+                success: true,
+                data: formattedRecords,
+                syncTime: new Date().toISOString()
+            };
+        } catch (err: any) {
+            return {
+                success: false,
+                error: err.message,
+                syncTime: new Date().toISOString()
+            };
+        }
+    },
+
+    saveEmailTemplate: async (templateData: any, templateId?: number): Promise<OdooResponse<number | boolean>> => {
+        try {
+            // Pre-render a generic HTML version for Odoo display/preview
+            const renderedHtml = AppraisalService.renderTemplateToHTML(templateData.blocks || [], {
+                employee_name: '{{object.name}}',
+                secure_link: '{{secure_link}}',
+                appraisal_period: '{{appraisal_period}}'
+            });
+
+            const data: any = {
+                name: templateData.name,
+                subject: templateData.subject || `Appraisal: ${templateData.name}`,
+                body_html: renderedHtml,
+                description: JSON.stringify(templateData.blocks), // Store structure here for future editing
+                auto_delete: false
+            };
+
+            if (!templateId) {
+                const model_ids = await odooCall('ir.model', 'search', [[['model', '=', 'hr.appraisal']]], { limit: 1 });
+                if (model_ids && model_ids.length > 0) {
+                    data.model_id = model_ids[0];
+                }
+                const id = await odooCall('mail.template', 'create', [data]);
+                return {
+                    success: true,
+                    data: id,
+                    syncTime: new Date().toISOString()
+                };
+            } else {
+                const success = await odooCall('mail.template', 'write', [[templateId], data]);
+                return {
+                    success: true,
+                    data: success,
+                    syncTime: new Date().toISOString()
+                };
+            }
+        } catch (err: any) {
+            console.error('[AppraisalService] Save Template Error:', err);
+            return {
+                success: false,
+                error: err.message,
+                syncTime: new Date().toISOString()
+            };
+        }
+    },
+
+    fetchEmailTemplatesDetailed: async (): Promise<OdooResponse<any[]>> => {
+        try {
+            const templates = await odooCall('mail.template', 'search_read', [[['model_id.model', '=', 'hr.appraisal']]], {
+                fields: ['name', 'subject', 'body_html', 'description', 'write_date']
+            });
+
+            const formattedTemplates = templates.map((t: any) => {
+                let blocks = [];
+                // Primary source: description (where we store JSON structure)
+                // Secondary source: body_html (fallback check)
+                const source = (t.description && t.description.startsWith('[')) ? t.description : t.body_html;
+
+                try {
+                    blocks = JSON.parse(source || '[]');
+                } catch (e) {
+                    blocks = [{ id: 'raw', type: 'text', content: t.body_html, style: {} }];
+                }
+
+                return {
+                    id: t.id,
+                    name: t.name,
+                    subject: t.subject,
+                    blocks: blocks,
+                    status: t.description || 'published',
+                    updated_at: t.write_date
+                };
+            });
+
+            return {
+                success: true,
+                data: formattedTemplates,
+                syncTime: new Date().toISOString()
+            };
+        } catch (err: any) {
+            return { success: false, error: err.message, syncTime: new Date().toISOString() };
+        }
+    },
+
+
+
+    deleteEmailTemplate: async (templateId: any): Promise<OdooResponse<boolean>> => {
+        try {
+            // Ensure ID is a number for Odoo
+            const numericId = typeof templateId === 'string' ? parseInt(templateId, 10) : templateId;
+
+            // 1. Delete from Odoo
+            const odooResult = await odooCall('mail.template', 'unlink', [[numericId]]);
+
+            // 2. Also try to delete from Supabase if it exists there (syncing purposes)
+            try {
+                await supabase.from('email_templates').delete().eq('id', templateId);
+                // Also check if id is a numeric string (some systems use strings for IDs)
+                if (typeof templateId === 'number') {
+                    await supabase.from('email_templates').delete().eq('id', templateId.toString());
+                }
+            } catch (supabaseErr) {
+                console.warn('[AppraisalService] Supabase delete attempt skipped or failed:', supabaseErr);
+            }
+
+            return {
+                success: true,
+                data: odooResult === true,
+                syncTime: new Date().toISOString()
+            };
+        } catch (err: any) {
+            console.error('[AppraisalService] Delete Template Error:', err);
+            return { success: false, error: err.message, syncTime: new Date().toISOString() };
+        }
+    },
+
+    // --- 360 Feedback ---
+    

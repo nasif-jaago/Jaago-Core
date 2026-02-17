@@ -1,0 +1,22 @@
+src/components/hr/appraisals/EmailTemplateBuilder.tsx(629,59): error TS2339: Property 'dataTransfer' does not exist on type 'MouseEvent | PointerEvent | TouchEvent'.
+  Property 'dataTransfer' does not exist on type 'MouseEvent'.
+src/components/hr/appraisals/EmailTemplateBuilder.tsx(630,59): error TS2339: Property 'dataTransfer' does not exist on type 'MouseEvent | PointerEvent | TouchEvent'.
+  Property 'dataTransfer' does not exist on type 'MouseEvent'.
+src/components/hr/appraisals/FormBuilder.tsx(547,79): error TS2552: Cannot find name 'Download'. Did you mean 'onload'?
+src/components/requisitions/ApprovalRulesManager.tsx(173,89): error TS2322: Type 'number' is not assignable to type 'false | [number, string] | undefined'.
+src/components/requisitions/ApprovalRulesManager.tsx(251,186): error TS2353: Object literal may only specify known properties, and 'hover' does not exist in type 'Properties<string | number, string & {}>'.
+src/components/requisitions/ApprovalRulesManager.tsx(379,93): error TS18048: 'rule.amount_threshold_min' is possibly 'undefined'.
+src/components/requisitions/ApprovalRulesManager.tsx(381,93): error TS18048: 'rule.amount_threshold_max' is possibly 'undefined'.
+src/components/requisitions/ApprovalRulesManager.tsx(381,125): error TS18048: 'rule.amount_threshold_max' is possibly 'undefined'.
+src/components/requisitions/DomainBuilder.tsx(3,10): error TS2724: '"../../api/RequisitionsService"' has no exported member named 'fetchRequisitionFields'. Did you mean 'fetchRequisitions'?
+src/components/requisitions/DomainBuilder.tsx(49,127): error TS18046: 'f' is of type 'unknown'.
+src/components/requisitions/DomainBuilder.tsx(50,42): error TS18046: 'f' is of type 'unknown'.
+src/components/requisitions/RequisitionCreatePage.tsx(4,5): error TS2724: '"../../api/RequisitionsService"' has no exported member named 'createRequisitionRequest'. Did you mean 'createRequisition'?
+src/components/requisitions/RequisitionCreatePage.tsx(5,10): error TS2459: Module '"../../api/RequisitionsService"' declares 'RequisitionCategory' locally, but it is not exported.
+src/components/requisitions/RequisitionCreatePage.tsx(6,10): error TS2459: Module '"../../api/RequisitionsService"' declares 'RequisitionFormValues' locally, but it is not exported.
+src/components/requisitions/RequisitionCreatePage.tsx(7,10): error TS2305: Module '"../../api/RequisitionsService"' has no exported member 'RequisitionField'.
+src/components/requisitions/RequisitionDetailModal.tsx(4,5): error TS2305: Module '"../../api/RequisitionsService"' has no exported member 'approveRequest'.
+src/components/requisitions/RequisitionDetailModal.tsx(5,5): error TS2305: Module '"../../api/RequisitionsService"' has no exported member 'refuseRequest'.
+src/components/requisitions/RequisitionDetailModal.tsx(6,5): error TS2305: Module '"../../api/RequisitionsService"' has no exported member 'cancelRequest'.
+src/components/requisitions/RequisitionDetailModal.tsx(7,10): error TS2459: Module '"../../api/RequisitionsService"' declares 'RequisitionRequest' locally, but it is not exported.
+src/components/requisitions/RequisitionDynamicFieldRenderer.tsx(4,15): error TS2305: Module '"../../api/RequisitionsService"' has no exported member 'RequisitionField'.

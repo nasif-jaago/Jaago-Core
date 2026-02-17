@@ -1,0 +1,108 @@
+send360Invites: async (invites: any[], templateId: string): Promise<{ success: boolean; data?: any; error?: string }> => {
+        try {
+            const results = [];
+            let template: any = null;
+            if (templateId) {
+                const { data } = await supabase.from('email_templates').select('*').eq('id', templateId).single();
+                if (!data) {
+                    const odooTemplates = await odooCall('mail.template', 'search_read', [[['id', '=', templateId]]], { fields: ['name', 'subject', 'body_html', 'description'] });
+                    if (odooTemplates && odooTemplates.length > 0) template = odooTemplates[0];
+                } else {
+                    template = data;
+                }
+            }
+
+            for (const invite of invites) {
+                // Validation
+                if (!invite.email) {
+                    console.error('[send360Invites] Missing email for invite:', invite);
+                    continue;
+                }
+
+                const token = crypto.randomUUID();
+                const expiry = new Date();
+                expiry.setDate(expiry.getDate() + 7);
+
+                const inviteData = {
+                    requested_employee_id: invite.employee_id,
+                    requested_employee_name: invite.name,
+                    requested_employee_email: invite.email,
+                    template_id: templateId,
+                    secure_token: token,
+                    expiry_date: expiry.toISOString(),
+                    status: 'Sent',
+                    positive_feedback_points: invite.positivePoints,
+                    improve_feedback_points: invite.improvePoints
+                };
+
+                let inviteResult: any;
+                try {
+                    const { data: insertData, error: insertError } = await supabase.from('three_sixty_invites').insert([inviteData]).select();
+                    if (insertError) throw insertError;
+                    inviteResult = insertData[0];
+                } catch (supabaseErr) {
+                    console.warn('[AppraisalService] falling back to localStorage for 360 invite');
+                    const storageKey = 'jaago_360_invites';
+                    const existing = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                    inviteResult = { ...inviteData, id: Date.now() + Math.random() };
+                    localStorage.setItem(storageKey, JSON.stringify([inviteResult, ...existing]));
+                }
+
+                const secureLink = `${window.location.origin}/?view=feedback-360&token=${token}`;
+                const employeeName = invite.name || 'Employee';
+                const subject = template?.subject?.replace(/{{employee_name}}/g, employeeName) || 'Action Required: Give Your Feedback';
+
+                let blocks = template?.blocks || template?.content_json || template?.description;
+                if (!Array.isArray(blocks) && typeof blocks === 'string' && (blocks.startsWith('[') || blocks.startsWith('{'))) {
+                    try {
+                        const parsed = JSON.parse(blocks);
+                        blocks = Array.isArray(parsed) ? parsed : (parsed.blocks || [parsed]);
+                    } catch (e) { blocks = null; }
+                }
+
+                let emailBody = '';
+                if (Array.isArray(blocks)) {
+                    emailBody = AppraisalService.renderTemplateToHTML(blocks, {
+                        employee_name: employeeName,
+                        secure_link: secureLink,
+                        recipient_email: invite.email // Essential for filtering the 360 invite block
+                    });
+                } else if (template?.body_html) {
+                    emailBody = template.body_html
+                        .replace(/{{object\.employee_id\.name}}/g, employeeName)
+                        .replace(/{{object\.name}}/g, employeeName)
+                        .replace(/{{secure_link}}/g, secureLink);
+                } else {
+                    emailBody = `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                            <h2 style="color: #1e293b;">Give Your Feedback</h2>
+                            <p>You have been requested to provide feedback for <strong>${employeeName}</strong>.</p>
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="${secureLink}" style="background-color: #f5c518; color: #000; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                                   Submit Your Feedback
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                await AppraisalService.sendEmail(invite.email, subject, emailBody, 'hr.appraisal', 0);
+
+                await AppraisalService.logActiveAction({
+                    appraisal_id: 0,
+                    email: invite.email,
+                    employee_name: invite.name,
+                    action_type: '360 Invite Sent',
+                    details: `360 Feedback invite sent to ${invite.email} for ${employeeName}`,
+                    status: 'Success'
+                });
+
+                results.push(inviteResult);
+            }
+            return { success: true, data: results };
+        } catch (error: any) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    

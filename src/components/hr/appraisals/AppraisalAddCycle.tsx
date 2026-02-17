@@ -24,7 +24,7 @@ const AppraisalAddCycle: React.FC<AppraisalAddCycleProps> = ({ onBack, onSuccess
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [generatedCount, setGeneratedCount] = useState(0);
-    const [currentAppraisals, setCurrentAppraisals] = useState<{ id: number, email: string }[]>([]);
+    const [currentAppraisals, setCurrentAppraisals] = useState<{ id: number, email: string, empName: string, empId: number }[]>([]);
 
     // Email Template selection
     const [emailTemplates, setEmailTemplates] = useState<any[]>([]);
@@ -68,19 +68,6 @@ const AppraisalAddCycle: React.FC<AppraisalAddCycleProps> = ({ onBack, onSuccess
         );
     };
 
-    const validateBackendHealth = async () => {
-        // Multi-check for each selected employee
-        for (const empId of selectedEmployees) {
-            const emp = employees.find(e => e.id === empId);
-            if (!emp?.work_email) {
-                throw new Error(`Employee ${emp?.name || empId} has no email address.`);
-            }
-            const isDuplicate = await AppraisalService.checkDuplicateAppraisal(empId, appraisalPeriod);
-            if (isDuplicate) {
-                throw new Error(`Appraisal for ${emp.name} in ${appraisalPeriod} already exists.`);
-            }
-        }
-    };
 
     const handleOpenCycle = async () => {
         setShowConfirmModal(false);
@@ -161,7 +148,21 @@ const AppraisalAddCycle: React.FC<AppraisalAddCycleProps> = ({ onBack, onSuccess
             const template = emailTemplates.find(t => t.id === selectedTemplateId);
             if (!template) throw new Error('Template not found');
 
-            const blocks = template.blocks || (typeof template.content_json === 'string' ? JSON.parse(template.content_json) : template.content_json);
+            let blocks = template.blocks || template.content_json || template.description;
+            const bodyHtmlStr = (template.body_html || '').trim();
+
+            if (!Array.isArray(blocks)) {
+                let source = typeof blocks === 'string' ? blocks : '';
+                if (!source && bodyHtmlStr.startsWith('[') || bodyHtmlStr.startsWith('{')) source = bodyHtmlStr;
+
+                if (source) {
+                    try {
+                        const parsed = JSON.parse(source);
+                        blocks = Array.isArray(parsed) ? parsed : (parsed.blocks || [parsed]);
+                    } catch (e) { }
+                }
+            }
+
             const subjectTemplate = template.subject || 'Action Required: Your Performance Appraisal';
 
             for (const item of currentAppraisals) {
@@ -169,37 +170,36 @@ const AppraisalAddCycle: React.FC<AppraisalAddCycleProps> = ({ onBack, onSuccess
                     // Fetch Metadata (Token)
                     const metadata = await AppraisalService.getAppraisalMetadata(item.id);
                     const token = metadata?.secure_token || 'INVALID_TOKEN';
-                    const secureLink = `${window.location.origin}/appraisal-submission?token=${token}&id=${item.id}`;
+                    const secureLink = `${window.location.origin}/?view=appraisal-editor&token=${token}&id=${item.id}&mode=employee`;
 
                     // 2. Render Template (Replace Variables)
-                    let bodyHtml = '';
                     const employeeName = item.empName || 'Employee';
                     const finalSubject = subjectTemplate.replace(/{{employee_name}}/g, employeeName);
 
-                    if (Array.isArray(blocks)) {
-                        bodyHtml = blocks.map((block: any) => {
-                            let text = block.content || block.text || '';
-                            text = text.replace(/{{employee_name}}/g, employeeName)
-                                .replace(/{{secure_link}}/g, secureLink)
-                                .replace(/{{appraisal_period}}/g, appraisalPeriod);
+                    const renderVars = {
+                        employee_name: employeeName,
+                        secure_link: secureLink,
+                        recipient_email: item.email,
+                        appraisal_period: appraisalPeriod,
+                        appraisal_id: item.id.toString(),
+                        company_name: 'JAAGO Foundation'
+                    };
 
-                            if (block.type === 'heading') {
-                                return `<h1 style="${Object.entries(block.style || {}).map(([k, v]) => `${k}:${v}`).join(';')}">${text}</h1>`;
-                            }
-                            if (block.type === 'button' || block.type === 'secure_link') {
-                                const bgColor = block.style?.backgroundColor || '#22c55e';
-                                return `<div style="text-align:center;margin:30px 0;"><a href="${secureLink}" style="background-color:${bgColor};color:white;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;">${text}</a></div>`;
-                            }
-                            if (block.type === 'divider') {
-                                return `<hr style="border:none;border-top:1px solid #e2e8f0;margin:30px 0;">`;
-                            }
-                            return `<p style="${Object.entries(block.style || {}).map(([k, v]) => `${k}:${v}`).join(';')}">${text}</p>`;
-                        }).join('');
+                    let bodyHtml = '';
+                    if (Array.isArray(blocks)) {
+                        bodyHtml = AppraisalService.renderTemplateToHTML(blocks, renderVars);
+                    } else if (template.body_html) {
+                        bodyHtml = template.body_html
+                            .replace(/{{employee_name}}/g, employeeName)
+                            .replace(/{{object\.employee_id\.name}}/g, employeeName)
+                            .replace(/{{object\.name}}/g, employeeName)
+                            .replace(/{{secure_link}}/g, secureLink)
+                            .replace(/{{appraisal_period}}/g, appraisalPeriod);
                     } else {
                         bodyHtml = `
                             <div style="font-family:sans-serif;padding:30px;max-width:600px;margin:auto;border:1px solid #e2e8f0;border-radius:16px;">
                                 <h2 style="color:#1e293b;">Hi ${employeeName},</h2>
-                                <p style="color:#475569;line-height:1.6;font-size:16px;">Your performance appraisal for <b>${appraisalPeriod}</b> is now ready for your input.</p>
+                                <p style={{color:'#475569',lineHeight:'1.6',fontSize:'16px'}}>Your performance appraisal for <b>${appraisalPeriod}</b> is now ready for your input.</p>
                                 <div style="margin:40px 0;text-align:center;">
                                     <a href="${secureLink}" style="background:#22c55e;color:white;padding:16px 32px;text-decoration:none;border-radius:12px;font-weight:800;display:inline-block;box-shadow:0 10px 15px -3px rgba(34, 197, 94, 0.3);">
                                         COMPLETE YOUR APPRAISAL NOW
@@ -232,6 +232,15 @@ const AppraisalAddCycle: React.FC<AppraisalAddCycleProps> = ({ onBack, onSuccess
                             department: 'General',
                             status: 'Sent',
                             created_at: new Date().toISOString()
+                        });
+
+                        await AppraisalService.logActiveAction({
+                            appraisal_id: item.id,
+                            email: item.email,
+                            employee_name: employeeName,
+                            action_type: 'Bulk Email Sent',
+                            details: `Appraisal invitation sent for period ${appraisalPeriod}`,
+                            status: 'Success'
                         });
 
                         // 5. Update Odoo Status to 'sent'
@@ -277,14 +286,77 @@ const AppraisalAddCycle: React.FC<AppraisalAddCycleProps> = ({ onBack, onSuccess
             const metadata = await AppraisalService.getAppraisalMetadata(firstAppraisal.id);
             const token = metadata?.secure_token || 'TEST_TOKEN';
 
+            const employeeName = emp?.name || 'Test Employee';
+            const secureLink = `${window.location.origin}/?view=appraisal-editor&token=${token}&id=${firstAppraisal.id}&mode=employee`;
+
+            let bodyHtml = '';
+            let blocks = template?.blocks || template?.content_json || template?.description;
+            const bodyHtmlStr = (template?.body_html || '').trim();
+
+            if (!Array.isArray(blocks)) {
+                let source = typeof blocks === 'string' ? blocks : '';
+                if (!source && (bodyHtmlStr.startsWith('[') || bodyHtmlStr.startsWith('{'))) source = bodyHtmlStr;
+
+                if (source) {
+                    try {
+                        const parsed = JSON.parse(source);
+                        blocks = Array.isArray(parsed) ? parsed : (parsed.blocks || [parsed]);
+                    } catch (e) { }
+                }
+            }
+
+
+            const renderVars = {
+                employee_name: employeeName,
+                secure_link: secureLink,
+                recipient_email: firstAppraisal.email,
+                appraisal_period: appraisalPeriod,
+                appraisal_id: firstAppraisal.id.toString(),
+                company_name: 'JAAGO Foundation'
+            };
+
+            if (Array.isArray(blocks)) {
+                bodyHtml = AppraisalService.renderTemplateToHTML(blocks, renderVars);
+            } else if (template?.body_html) {
+                bodyHtml = template.body_html
+                    .replace(/{{employee_name}}/g, employeeName)
+                    .replace(/{{object\.employee_id\.name}}/g, employeeName)
+                    .replace(/{{object\.name}}/g, employeeName)
+                    .replace(/{{secure_link}}/g, secureLink)
+                    .replace(/{{appraisal_period}}/g, appraisalPeriod);
+            } else {
+                bodyHtml = `
+                    <div style="font-family:sans-serif;padding:30px;max-width:600px;margin:auto;border:1px solid #e2e8f0;border-radius:16px;">
+                        <h2 style="color:#1e293b;">Hi ${employeeName},</h2>
+                        <p style="color:#475569;line-height:1.6;font-size:16px;">Your performance appraisal for <b>${appraisalPeriod}</b> is now ready for your input.</p>
+                        <div style="margin:40px 0;text-align:center;">
+                            <a href="${secureLink}" style="background:#22c55e;color:white;padding:16px 32px;text-decoration:none;border-radius:12px;font-weight:800;display:inline-block;box-shadow:0 10px 15px -3px rgba(34, 197, 94, 0.3);">
+                                COMPLETE YOUR APPRAISAL NOW
+                            </a>
+                        </div>
+                        <p style="color:#94a3b8;font-size:12px;text-align:center;">If the button doesn't work, copy this link: <br/> ${secureLink}</p>
+                    </div>
+                `;
+            }
+
             await AppraisalService.saveTestEmail({
                 receiver_email: firstAppraisal.email,
-                employee_name: emp?.name || 'Test Employee',
-                department: employees.find(e => e.id === firstAppraisal.id)?.parent_id ? 'IT' : 'Education', // Mock department logic
+                employee_name: employeeName,
+                department: employees.find(e => e.id === firstAppraisal.empId)?.parent_id ? 'IT' : 'Education', // Fixed empId usage
                 appraisal_id: firstAppraisal.id,
                 subject: template?.subject || 'Test Appraisal Cycle',
+                body: bodyHtml,
                 secure_token: token,
                 created_at: new Date().toISOString()
+            });
+
+            await AppraisalService.logActiveAction({
+                appraisal_id: firstAppraisal.id,
+                email: firstAppraisal.email,
+                employee_name: employeeName,
+                action_type: 'Test Email Sent',
+                details: `Test appraisal email sent to demo inbox for ${employeeName}`,
+                status: 'Success'
             });
 
             alert('Test email successfully sent to Demo Inbox!');

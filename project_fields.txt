@@ -1,0 +1,9 @@
+display_name | char | Display Name
+name | char | Name
+active | boolean | Active
+company_id | many2one | Company
+x_studio_events | many2many | Events
+x_studio_survey | many2many | Survey
+x_studio_documents | many2many | Documents
+x_x_studio_project_event_event_count | integer | Project count
+x_x_studio_many2one_field_8ms_1iq2v3gsj_survey_survey_count | integer | Projects count

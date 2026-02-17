@@ -10,14 +10,16 @@ export const fetchSettingsStats = async () => {
 
         // 2. Fetch Users with basic available fields
         const users = await odooCall('res.users', 'search_read', [[]], {
-            fields: ['name', 'login', 'active', 'share', 'company_id'],
+            fields: ['name', 'login', 'active', 'share', 'company_id', 'group_ids'],
             limit: 100
         });
 
-        // Add empty app_names array for UI compatibility
+        // Map group names to users for UI compatibility
         users.forEach((u: any) => {
-            u.app_names = [];
-            u.groups_id = [];
+            u.app_names = (u.group_ids || []).map((gid: number) => {
+                const group = groups.find((g: any) => g.id === gid);
+                return group ? group.full_name || group.name : null;
+            }).filter(Boolean);
         });
 
         // 3. Fetch Modules

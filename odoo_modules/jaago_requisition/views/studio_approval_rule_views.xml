@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="studio_approval_rule_view_form" model="ir.ui.view">
+        <field name="name">studio.approval.rule.view.form</field>
+        <field name="model">studio.approval.rule</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1><field name="name" placeholder="e.g., Finance Approval > 10k"/></h1>
+                    </div>
+                    <group>
+                        <group string="Basic Configuration">
+                            <field name="category_id"/>
+                            <field name="sequence"/>
+                            <field name="approval_type"/>
+                            <field name="active"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Conditions &amp; Thresholds">
+                            <field name="amount_threshold_min"/>
+                            <field name="amount_threshold_max"/>
+                            <field name="project_ids" widget="many2many_tags"/>
+                        </group>
+                    </group>
+                    <group string="Rules Engine">
+                        <field name="domain" widget="code" options="{'mode': 'python'}" placeholder="e.g., [('x_studio_total_amount', '>', 5000)]"/>
+                        <p class="text-muted" colspan="2">
+                            Enter an Odoo domain that must be satisfied for this rule to apply.
+                        </p>
+                    </group>
+                    <group string="Approvers">
+                        <field name="approver_ids" widget="many2many_tags" attrs="{'invisible': [('approval_type', '=', 'supervisor')], 'required': [('approval_type', '!=', 'supervisor')]}"/>
+                        <p class="text-muted" colspan="2" attrs="{'invisible': [('approval_type', '!=', 'supervisor')]}">
+                            For 'Supervisor' type, the system automatically routes to the Request owner's manager (employee.parent_id).
+                        </p>
+                    </group>
+                    <group string="Notes">
+                        <field name="description"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="studio_approval_rule_view_tree" model="ir.ui.view">
+        <field name="name">studio.approval.rule.view.tree</field>
+        <field name="model">studio.approval.rule</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="not active">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="category_id"/>
+                <field name="approval_type"/>
+                <field name="amount_threshold_min"/>
+                <field name="amount_threshold_max"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="studio_approval_rule_action" model="ir.actions.act_window">
+        <field name="name">Approval Rules</field>
+        <field name="res_model">studio.approval.rule</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Define the multi-step approval workflow.
+            </p>
+            <p>
+                Configure rules based on category, amount thresholds, and specific projects.
+            </p>
+        </field>
+    </record>
+</odoo>

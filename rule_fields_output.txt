@@ -1,0 +1,20 @@
+active | boolean | Active | 
+model_id | many2one | Model | ir.model
+method | char | Method | 
+action_id | many2one | Action | ir.actions.actions
+action_xmlid | char | External ID | 
+name | char | Name | 
+message | char | Description | 
+approver_ids | many2many | Approvers | res.users
+approver_log_ids | one2many | Approver Log | studio.approval.rule.approver
+approval_group_id | many2one | Approval Group | res.groups
+users_to_notify | many2many | Users to Notify | res.users
+notification_order | selection | Step | 
+exclusive_user | boolean | Exclusive Approval | 
+model_name | char | Model Name | 
+domain | char | Domain | 
+conditional | boolean | Conditional Rule | 
+can_validate | boolean | Can be approved | 
+kanban_color | integer | Kanban Color | 
+entry_ids | one2many | Entries | studio.approval.entry
+entries_count | integer | Number of Entries | 

@@ -1,0 +1,47 @@
+{
+  "name": {
+    "string": "Approval Subject",
+    "type": "char"
+  },
+  "request_owner_id": {
+    "relation": "res.users",
+    "string": "Request Owner",
+    "type": "many2one"
+  },
+  "category_id": {
+    "relation": "approval.category",
+    "string": "Category",
+    "type": "many2one"
+  },
+  "request_status": {
+    "string": "Request Status",
+    "type": "selection"
+  },
+  "date": {
+    "string": "Date",
+    "type": "datetime"
+  },
+  "x_studio_projects_name": {
+    "relation": "project.project",
+    "string": "Project's Name",
+    "type": "many2one"
+  },
+  "x_studio_project_code": {
+    "string": "Activity Code",
+    "type": "char"
+  },
+  "x_studio_total_amount": {
+    "string": "Total  EST Amount",
+    "type": "monetary"
+  },
+  "product_line_ids": {
+    "relation": "approval.product.line",
+    "string": "Product Line",
+    "type": "one2many"
+  },
+  "x_studio_departmentproject_name": {
+    "relation": "hr.department",
+    "string": "Department/Project Name",
+    "type": "many2one"
+  }
+}

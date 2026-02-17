@@ -419,31 +419,32 @@ const AppraisalDemo: React.FC = () => {
                                 <button onClick={() => setIsEmailViewOpen(false)} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer' }}>✕</button>
                             </div>
 
-                            <div style={{ background: '#f8fafc', color: '#334155', padding: '40px' }}>
-                                <div style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                                    <div style={{ background: '#1e293b', padding: '24px', textAlign: 'center' }}>
-                                        <div style={{ color: 'var(--primary)', fontWeight: 900, fontSize: '20px', letterSpacing: '1px' }}>JAAGO FOUNDATION</div>
-                                    </div>
-                                    <div style={{ padding: '40px' }}>
-                                        <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#1a202c', marginBottom: '20px' }}>Hello {activeEmail.employee_name},</h2>
-                                        <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#4a5568', marginBottom: '32px' }}>
-                                            Your annual performance appraisal for the current cycle is now open. We value your contribution and would like to hear about your achievements and future goals.
-                                        </p>
-                                        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                                            <button onClick={handleLinkClick} style={{
-                                                background: '#22c55e', color: '#fff', padding: '16px 32px', borderRadius: '12px',
-                                                fontWeight: 800, border: 'none', cursor: 'pointer', fontSize: '16px', boxShadow: '0 8px 15px rgba(34, 197, 94, 0.4)'
-                                            }}>
-                                                OPEN MY APPRAISAL FORM
-                                            </button>
-                                        </div>
-                                        <p style={{ fontSize: '14px', color: '#718096', textAlign: 'center' }}>
-                                            Please complete this within the next 7 working days.
-                                        </p>
-                                    </div>
-                                    <div style={{ padding: '24px', background: '#f1f5f9', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>
-                                        © 2024 JAAGO Foundation HR Module. All rights reserved.
-                                    </div>
+                            <div style={{ background: '#f8fafc', color: '#334155', padding: '40px', maxHeight: '70vh', overflowY: 'auto' }}>
+                                <div style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', overflow: 'hidden', padding: '40px' }}>
+                                    {activeEmail.body ? (
+                                        <div dangerouslySetInnerHTML={{ __html: activeEmail.body }} />
+                                    ) : (
+                                        <>
+                                            <div style={{ background: '#1e293b', padding: '24px', textAlign: 'center', margin: '-40px -40px 40px -40px' }}>
+                                                <div style={{ color: 'var(--primary)', fontWeight: 900, fontSize: '20px', letterSpacing: '1px' }}>JAAGO FOUNDATION</div>
+                                            </div>
+                                            <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#1a202c', marginBottom: '20px' }}>Hello {activeEmail.employee_name},</h2>
+                                            <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#4a5568', marginBottom: '32px' }}>
+                                                Your annual performance appraisal for the current cycle is now open. We value your contribution and would like to hear about your achievements and future goals.
+                                            </p>
+                                            <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                                                <button onClick={handleLinkClick} style={{
+                                                    background: '#22c55e', color: '#fff', padding: '16px 32px', borderRadius: '12px',
+                                                    fontWeight: 800, border: 'none', cursor: 'pointer', fontSize: '16px', boxShadow: '0 8px 15px rgba(34, 197, 94, 0.4)'
+                                                }}>
+                                                    OPEN MY APPRAISAL FORM
+                                                </button>
+                                            </div>
+                                            <p style={{ fontSize: '14px', color: '#718096', textAlign: 'center' }}>
+                                                Please complete this within the next 7 working days.
+                                            </p>
+                                        </>
+                                    )}
                                 </div>
                             </div>
 

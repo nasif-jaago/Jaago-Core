@@ -161,7 +161,7 @@ export const fetchDepartments = async (): Promise<OdooResponse<any[]>> => {
 export const fetchCompanies = async (): Promise<OdooResponse<any[]>> => {
     try {
         const companies = await odooCall('res.company', 'search_read', [[]], {
-            fields: ['name'],
+            fields: ['name', 'currency_id'],
             order: 'name'
         });
         return { success: true, data: companies, syncTime: new Date().toISOString() };
@@ -207,6 +207,17 @@ export const writeRecord = async (model: string, id: number, vals: any) => {
 
 export const deleteRecord = async (model: string, id: number) => {
     return await odooCall(model, 'unlink', [[id]]);
+};
+
+/**
+ * Log a message to the Odoo record chatter
+ */
+export const logToChatter = async (model: string, id: number, message: string) => {
+    try {
+        return await odooCall(model, 'message_post', [[id]], { body: message });
+    } catch (err) {
+        console.error('Failed to log to Odoo chatter', err);
+    }
 };
 
 export const updateEmployee = async (employeeId: number, vals: any) => {

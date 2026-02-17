@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     Activity, Building2, ChevronDown, TrendingUp, DollarSign,
-    Briefcase, Download, ArrowUpRight, ArrowDownRight,
-    BarChart3, Heart, Filter, CheckCircle,
-    Rocket, HandHeart, Users2, GraduationCap
+    Workflow, Download, ArrowUpRight, ArrowDownRight,
+    BarChart3, Filter, CheckCircle,
+    HandHeart, Users2, GraduationCap, FileText
 } from 'lucide-react';
 import {
-    XAxis, Tooltip, ResponsiveContainer,
-    BarChart, Bar, Cell, PieChart as RePieChart, Pie
+    XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
+    BarChart, Bar, Cell, PieChart as RePieChart, Pie,
+    LineChart, Line, AreaChart, Area
 } from 'recharts';
 import { DashboardService } from '../../api/DashboardService';
 import type { DashboardFilters } from '../../api/DashboardService';
@@ -38,13 +39,27 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
     } | null>(null);
 
     const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
+    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+    const [isInvoiceDetailsOpen, setIsInvoiceDetailsOpen] = useState(false);
+    const [activePreset, setActivePreset] = useState('MTD');
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const filterModalRef = useRef<HTMLDivElement>(null);
+
+    // Temp filters for the modal
+    const [tempDateRange, setTempDateRange] = useState({
+        start: filters.dateRange.start,
+        end: filters.dateRange.end
+    });
+    const [tempSearchKeyword, setTempSearchKeyword] = useState('');
 
     // --- Loading Data ---
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsCompanyDropdownOpen(false);
+            }
+            if (filterModalRef.current && !filterModalRef.current.contains(event.target as Node)) {
+                setIsFilterModalOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -104,23 +119,18 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
         const now = new Date();
         let start = new Date();
         const end = now.toISOString().split('T')[0];
+        setActivePreset(preset);
 
         switch (preset) {
             case 'Today':
                 start = now;
                 break;
-            case 'This Week':
-                start.setDate(now.getDate() - now.getDay());
-                break;
-            case 'This Month':
-                start = new Date(now.getFullYear(), now.getMonth(), 1);
-                break;
             case 'MTD':
                 start = new Date(now.getFullYear(), now.getMonth(), 1);
                 break;
             case 'QTD':
-                const quarter = Math.floor(now.getMonth() / 3);
-                start = new Date(now.getFullYear(), quarter * 3, 1);
+                // Custom logic: present date and previous 4 months
+                start = new Date(now.getFullYear(), now.getMonth() - 4, now.getDate());
                 break;
             case 'YTD':
                 start = new Date(now.getFullYear(), 0, 1);
@@ -141,13 +151,13 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
     return (
         <div style={{
             background: 'transparent',
-            padding: '24px',
+            padding: '16px',
             width: '100%',
-            maxWidth: '1600px',
-            margin: '0 auto',
+            maxWidth: '100%',
+            margin: '0',
             display: 'flex',
             flexDirection: 'column',
-            gap: '32px'
+            gap: '16px'
         }}>
             {/* 1. ADVANCED FILTER BAR */}
             <header style={{
@@ -155,12 +165,12 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
                 flexWrap: 'wrap',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '20px',
-                padding: '16px 24px',
+                gap: '12px',
+                padding: '12px 20px',
                 background: 'var(--bg-surface)',
-                borderRadius: '24px',
+                borderRadius: '16px',
                 border: '1px solid var(--border-glass)',
-                boxShadow: 'var(--shadow-3d)'
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div>
@@ -177,7 +187,7 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
                             style={{ padding: '8px 16px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px', minWidth: '150px' }}
                         >
                             <Building2 size={16} />
-                            {filters.companyIds.length === 0 ? 'CONSOLIDATED VIEW' : `${filters.companyIds.length} ENTITIES SELECTED`}
+                            {filters.companyIds.length === 0 ? 'COMPANY' : `${filters.companyIds.length} ENTITIES SELECTED`}
                             <ChevronDown size={14} />
                         </button>
                         {isCompanyDropdownOpen && (
@@ -240,23 +250,116 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
                                 onClick={() => setDatePreset(preset)}
                                 style={{
                                     padding: '6px 12px', borderRadius: '8px', border: 'none',
-                                    background: preset === 'MTD' ? 'var(--primary)' : 'transparent',
-                                    color: preset === 'MTD' ? '#000' : 'var(--text-dim)',
-                                    fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer'
+                                    background: preset === activePreset ? 'var(--primary)' : 'transparent',
+                                    color: preset === activePreset ? '#000' : 'var(--text-dim)',
+                                    fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer',
+                                    transition: 'all 0.2s ease'
                                 }}
                             >{preset}</button>
                         ))}
                     </div>
 
                     {/* Advanced Filters */}
-                    <button
-                        className="btn-3d"
-                        style={{ padding: '8px 16px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-card)', color: 'var(--primary)', border: '1px solid var(--primary)' }}
-                        onClick={() => alert('Opening Advanced Odoo Filter Engine...')}
-                    >
-                        <Filter size={16} />
-                        FILTERS
-                    </button>
+                    <div style={{ position: 'relative' }}>
+                        <button
+                            className="btn-3d"
+                            style={{ padding: '8px 16px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px', background: isFilterModalOpen ? 'var(--primary)' : 'var(--bg-card)', color: isFilterModalOpen ? '#000' : 'var(--primary)', border: '1px solid var(--primary)' }}
+                            onClick={() => setIsFilterModalOpen(!isFilterModalOpen)}
+                        >
+                            <Filter size={16} />
+                            FILTERS
+                        </button>
+
+                        {isFilterModalOpen && (
+                            <div className="glass-panel" ref={filterModalRef} style={{
+                                position: 'absolute', top: '110%', right: 0, zIndex: 1000,
+                                padding: '24px', borderRadius: '20px', width: '320px',
+                                background: 'var(--bg-surface)', border: '1px solid var(--primary)',
+                                boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                    <p style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary)', margin: 0, letterSpacing: '1px' }}>ADVANCED SEARCH</p>
+                                    <button onClick={() => setIsFilterModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                                        <Activity size={14} />
+                                    </button>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>KEYWORDS (PROJECT / PARTNER)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Dhaka, Education..."
+                                            value={tempSearchKeyword}
+                                            onChange={(e) => setTempSearchKeyword(e.target.value)}
+                                            style={{
+                                                padding: '10px', background: 'var(--input-bg)', border: '1px solid var(--border-glass)',
+                                                borderRadius: '10px', color: 'var(--text-main)', fontSize: '0.8rem', outline: 'none'
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>START DATE</label>
+                                        <input
+                                            type="date"
+                                            value={tempDateRange.start}
+                                            onChange={(e) => setTempDateRange({ ...tempDateRange, start: e.target.value })}
+                                            style={{
+                                                padding: '10px', background: 'var(--input-bg)', border: '1px solid var(--border-glass)',
+                                                borderRadius: '10px', color: 'var(--text-main)', fontSize: '0.8rem', outline: 'none'
+                                            }}
+                                        />
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>END DATE</label>
+                                        <input
+                                            type="date"
+                                            value={tempDateRange.end}
+                                            onChange={(e) => setTempDateRange({ ...tempDateRange, end: e.target.value })}
+                                            style={{
+                                                padding: '10px', background: 'var(--input-bg)', border: '1px solid var(--border-glass)',
+                                                borderRadius: '10px', color: 'var(--text-main)', fontSize: '0.8rem', outline: 'none'
+                                            }}
+                                        />
+                                    </div>
+
+                                    <button
+                                        className="btn-primary"
+                                        style={{ marginTop: '8px', padding: '12px', fontWeight: 900, borderRadius: '10px' }}
+                                        onClick={() => {
+                                            setFilters({
+                                                ...filters,
+                                                dateRange: tempDateRange,
+                                                searchKeyword: tempSearchKeyword
+                                            });
+                                            setActivePreset('Custom');
+                                            setIsFilterModalOpen(false);
+                                        }}
+                                    >
+                                        APPLY FILTERS
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            const resetDates = {
+                                                start: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
+                                                end: new Date().toISOString().split('T')[0]
+                                            };
+                                            setTempDateRange(resetDates);
+                                            setTempSearchKeyword('');
+                                            setFilters({ ...filters, dateRange: resetDates, searchKeyword: '' });
+                                            setActivePreset('MTD');
+                                            setIsFilterModalOpen(false);
+                                        }}
+                                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', marginTop: '4px' }}
+                                    >
+                                        RESET TO DEFAULT
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     <button className="btn-icon" style={{ padding: '8px', borderRadius: '10px', background: 'var(--input-bg)', border: '1px solid var(--border-glass)', color: 'var(--text-main)' }}>
                         <Download size={18} />
@@ -265,12 +368,12 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
             </header>
 
             {/* 2. EXECUTIVE SNAPSHOT (Top Row) */}
-            <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+            <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
                 <SnapshotCard
-                    label="Total Programmes"
+                    label="Running Projects"
                     value={(dashboardData?.kpis?.totalProgrammes || 48).toLocaleString()}
                     change="+2.4%"
-                    icon={Rocket}
+                    icon={Workflow}
                     color="#8b5cf6"
                     onClick={() => onModuleClick?.('projects')}
                 />
@@ -299,75 +402,132 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
                     trend="down"
                     onClick={() => onModuleClick?.('expenses')}
                 />
+                <SnapshotCard
+                    label="Total Invoices"
+                    value={(dashboardData?.kpis?.totalInvoiceCount || 156).toLocaleString()}
+                    subValue={new Intl.NumberFormat('en-US', { style: 'currency', currency: dashboardData?.kpis.currency || 'BDT', maximumFractionDigits: 0 }).format(dashboardData?.kpis?.totalInvoiceAmount || 12500000)}
+                    change="+8.2%"
+                    icon={FileText}
+                    color="#3b82f6"
+                    onClick={() => setIsInvoiceDetailsOpen(true)}
+                />
             </section>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '32px' }}>
-                {/* 3. PROGRAM & PROJECT ANALYTICS */}
-                <section className="glass-panel" style={{ padding: '32px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                        <h3 style={{ fontSize: '1rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <Activity size={20} color="var(--primary)" /> PROGRAM & PROJECT INTELLIGENCE
-                        </h3>
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                            <button className="btn-3d" style={{ padding: '6px 14px', fontSize: '0.65rem' }}>SECTOR VIEW</button>
-                            <button className="btn-3d-green" style={{ padding: '6px 14px', fontSize: '0.65rem' }}>MAP IMPACT</button>
-                        </div>
-                    </div>
+            {/* 2.5 ANALYTICS DASHBOARD - COMPACT GRID */}
+            <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '12px' }}>
+                {/* Chart 1: Revenue Trend - Line Chart */}
+                <div className="glass-panel" style={{ padding: '16px' }}>
+                    <p style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '12px', textTransform: 'uppercase' }}>Monthly Revenue Trend</p>
+                    <ResponsiveContainer width="100%" height={180}>
+                        <LineChart data={[
+                            { month: 'Jan', revenue: 4200, target: 4000 },
+                            { month: 'Feb', revenue: 5100, target: 4500 },
+                            { month: 'Mar', revenue: 4800, target: 5000 },
+                            { month: 'Apr', revenue: 6200, target: 5500 },
+                            { month: 'May', revenue: 5800, target: 5500 },
+                            { month: 'Jun', revenue: 7100, target: 6000 }
+                        ]}>
+                            <XAxis dataKey="month" stroke="var(--text-dim)" style={{ fontSize: '10px' }} />
+                            <YAxis stroke="var(--text-dim)" style={{ fontSize: '10px' }} />
+                            <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-glass)', borderRadius: '8px', fontSize: '11px' }} />
+                            <Line type="monotone" dataKey="revenue" stroke="#38bdf8" strokeWidth={3} dot={{ fill: '#38bdf8', r: 4 }} />
+                            <Line type="monotone" dataKey="target" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
-                        <div style={{ height: '300px' }}>
-                            <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '16px', letterSpacing: '1px' }}>PROJECT DISTRIBUTION BY SECTOR</p>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <RePieChart>
-                                    <Pie
-                                        data={dashboardData?.projects.sectors || [
-                                            { name: 'Education', count: 40 },
-                                            { name: 'Health', count: 30 },
-                                            { name: 'Nutrition', count: 20 },
-                                            { name: 'Protection', count: 10 }
-                                        ]}
-                                        innerRadius={60}
-                                        outerRadius={100}
-                                        paddingAngle={5}
-                                        dataKey="count"
-                                    >
-                                        {(dashboardData?.projects.sectors?.length ? dashboardData.projects.sectors : [
-                                            { name: 'Education', count: 40 },
-                                            { name: 'Health', count: 30 },
-                                            { name: 'Nutrition', count: 20 },
-                                            { name: 'Protection', count: 10 }
-                                        ]).map((_: any, index: number) => (
-                                            <Cell key={`cell-${index}`} fill={['var(--primary)', '#10b981', '#3b82f6', '#f472b6', '#a8a29e'][index % 5]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: '12px' }} />
-                                </RePieChart>
-                            </ResponsiveContainer>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px', letterSpacing: '1px' }}>BUDGET UTILIZATION TRACKER</p>
-                            {(dashboardData?.projects.budgets?.length ? dashboardData.projects.budgets.slice(0, 4) : [
-                                { name: 'School Support Program', utilized: 750000, total: 1000000 },
-                                { name: 'Healthy Kids Initiative', utilized: 450000, total: 900000 },
-                                { name: 'Emergency Food Relief', utilized: 800000, total: 850000 },
-                                { name: 'Youth Skills Development', utilized: 300000, total: 1200000 }
-                            ]).map((b: any, i: number) => (
-                                <div key={i} style={{ padding: '16px', borderRadius: '16px', background: 'var(--bg-surface)', border: '1px solid var(--border-glass)' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>{b.name}</span>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary)' }}>{Math.round((b.utilized / (b.total || 1)) * 100)}%</span>
-                                    </div>
-                                    <div style={{ height: '6px', width: '100%', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
-                                        <div style={{ height: '100%', width: `${Math.min(100, (b.utilized / (b.total || 1)) * 100)}%`, background: 'var(--primary-gradient)' }} />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </section>
+                {/* Chart 2: Project Distribution - Donut */}
+                <div className="glass-panel" style={{ padding: '16px' }}>
+                    <p style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '12px', textTransform: 'uppercase' }}>Project Distribution</p>
+                    <ResponsiveContainer width="100%" height={180}>
+                        <RePieChart>
+                            <Pie
+                                data={dashboardData?.projects.sectors?.length ? dashboardData.projects.sectors : [
+                                    { name: 'Education', value: 40 },
+                                    { name: 'Health', value: 30 },
+                                    { name: 'Nutrition', value: 20 },
+                                    { name: 'Protection', value: 10 }
+                                ]}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={45}
+                                outerRadius={70}
+                                paddingAngle={6}
+                                dataKey="value"
+                            >
+                                {(dashboardData?.projects.sectors?.length ? dashboardData.projects.sectors : [
+                                    { name: 'Education', value: 40 },
+                                    { name: 'Health', value: 30 },
+                                    { name: 'Nutrition', value: 20 },
+                                    { name: 'Protection', value: 10 }
+                                ]).map((entry: any, index: number) => (
+                                    <Cell key={`cell-${index}`} fill={['#38bdf8', '#fbbf24', '#818cf8', '#f472b6', '#10b981', '#f59e0b', '#8b5cf6'][index % 7]} />
+                                ))}
+                            </Pie>
+                            <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-glass)', borderRadius: '8px', fontSize: '11px' }} />
+                            <Legend wrapperStyle={{ fontSize: '10px' }} />
+                        </RePieChart>
+                    </ResponsiveContainer>
+                </div>
+
+                {/* Chart 3: Expense Breakdown - Area Chart */}
+                <div className="glass-panel" style={{ padding: '16px' }}>
+                    <p style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '12px', textTransform: 'uppercase' }}>Expense Flow Analysis</p>
+                    <ResponsiveContainer width="100%" height={180}>
+                        <AreaChart data={[
+                            { week: 'W1', operational: 280, program: 180 },
+                            { week: 'W2', operational: 320, program: 220 },
+                            { week: 'W3', operational: 290, program: 280 },
+                            { week: 'W4', operational: 350, program: 240 }
+                        ]}>
+                            <defs>
+                                <linearGradient id="colorOp" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#fb7185" stopOpacity={0.8} />
+                                    <stop offset="95%" stopColor="#fb7185" stopOpacity={0.1} />
+                                </linearGradient>
+                                <linearGradient id="colorProg" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#34d399" stopOpacity={0.8} />
+                                    <stop offset="95%" stopColor="#34d399" stopOpacity={0.1} />
+                                </linearGradient>
+                            </defs>
+                            <XAxis dataKey="week" stroke="var(--text-dim)" style={{ fontSize: '10px' }} />
+                            <YAxis stroke="var(--text-dim)" style={{ fontSize: '10px' }} />
+                            <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-glass)', borderRadius: '8px', fontSize: '11px' }} />
+                            <Area type="monotone" dataKey="operational" stroke="#fb7185" fillOpacity={1} fill="url(#colorOp)" />
+                            <Area type="monotone" dataKey="program" stroke="#34d399" fillOpacity={1} fill="url(#colorProg)" />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+
+                {/* Chart 4: Team Efficiency - Horizontal Bar */}
+                <div className="glass-panel" style={{ padding: '16px' }}>
+                    <p style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '12px', textTransform: 'uppercase' }}>Department Efficiency</p>
+                    <ResponsiveContainer width="100%" height={180}>
+                        <BarChart layout="vertical" data={[
+                            { dept: 'HR', score: 92 },
+                            { dept: 'Finance', score: 88 },
+                            { dept: 'Programs', score: 95 },
+                            { dept: 'Admin', score: 78 }
+                        ]}>
+                            <XAxis type="number" stroke="var(--text-dim)" style={{ fontSize: '10px' }} />
+                            <YAxis type="category" dataKey="dept" stroke="var(--text-dim)" style={{ fontSize: '10px' }} />
+                            <Tooltip contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-glass)', borderRadius: '8px', fontSize: '11px' }} />
+                            <Bar dataKey="score" fill="#818cf8" radius={[0, 8, 8, 0]} barSize={20}>
+                                <Cell fill="#34d399" />
+                                <Cell fill="#38bdf8" />
+                                <Cell fill="#fbbf24" />
+                                <Cell fill="#f472b6" />
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            </section>
+
+            {/* 3. DETAILED SECTIONS */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
 
                 {/* 4. DONOR & FUNDRAISING INTELLIGENCE */}
-                <section className="glass-panel" style={{ padding: '32px' }}>
+                <section className="glass-panel" style={{ padding: '20px' }}>
                     <h3 style={{ fontSize: '1.2rem', fontWeight: 900, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <BarChart3 size={24} color="var(--primary)" /> FUNDRAISING HUB
                     </h3>
@@ -412,7 +572,7 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '14px', borderRadius: '12px', background: 'rgba(245, 197, 24, 0.05)', border: '1px solid rgba(245, 197, 24, 0.1)', transition: 'all 0.3s ease' }} className="hover-glow">
                             <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>Funding Pipeline</span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--primary)' }}>৳45.2M</span>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--primary)' }}>{dashboardData?.kpis.currency || 'BDT'} 45.2M</span>
                                 <Activity size={14} color="var(--primary)" />
                             </div>
                         </div>
@@ -421,7 +581,7 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
             </div>
 
             {/* 5. FINANCE & DEPARTMENT PANEL */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '32px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '12px' }}>
                 <section className="glass-panel" style={{ padding: '32px' }}>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 900, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <DollarSign size={20} color="var(--primary)" /> FINANCE & LIQUIDITY
@@ -458,7 +618,7 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
                                 <span style={{ fontSize: '0.95rem', fontWeight: 900 }}>
                                     {new Intl.NumberFormat('en-US', {
                                         style: 'currency',
-                                        currency: 'BDT',
+                                        currency: dashboardData?.kpis.currency || 'BDT',
                                         maximumFractionDigits: 0
                                     }).format(l.balance || 0)}
                                 </span>
@@ -512,13 +672,81 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
                     </div>
                 </section>
             </div>
+
+            {/* 4. MODALS & OVERLAYS */}
+            {isInvoiceDetailsOpen && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
+                    <div className="glass-panel" style={{ width: '100%', maxWidth: '900px', padding: '32px', border: '1px solid var(--primary)', maxHeight: '80vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                            <div>
+                                <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>INVOICE REVENUE ANALYTICS</h1>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Detailed breakdown of corporate & sponsor invoices from Odoo</p>
+                            </div>
+                            <button onClick={() => setIsInvoiceDetailsOpen(false)} className="btn-icon" style={{ background: 'var(--input-bg)', border: '1px solid var(--border-glass)' }}>
+                                <Activity size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '32px' }}>
+                            <div style={{ padding: '20px', borderRadius: '16px', background: 'rgba(56, 189, 248, 0.05)', border: '1px solid rgba(56, 189, 248, 0.1)' }}>
+                                <p style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Billed</p>
+                                <p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--primary)', marginTop: '4px' }}>{new Intl.NumberFormat('en-US', { style: 'currency', currency: dashboardData?.kpis.currency || 'BDT', maximumFractionDigits: 0 }).format(dashboardData?.kpis.totalInvoiceAmount || 0)}</p>
+                            </div>
+                            <div style={{ padding: '20px', borderRadius: '16px', background: 'rgba(52, 211, 153, 0.05)', border: '1px solid rgba(52, 211, 153, 0.1)' }}>
+                                <p style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Invoice Count</p>
+                                <p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--accent-green)', marginTop: '4px' }}>{dashboardData?.kpis.totalInvoiceCount}</p>
+                            </div>
+                            <div style={{ padding: '20px', borderRadius: '16px', background: 'rgba(251, 113, 133, 0.05)', border: '1px solid rgba(251, 113, 133, 0.1)' }}>
+                                <p style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Avg Revenue / Inv</p>
+                                <p style={{ fontSize: '1.4rem', fontWeight: 900, color: '#f87171', marginTop: '4px' }}>{new Intl.NumberFormat('en-US', { style: 'currency', currency: dashboardData?.kpis.currency || 'BDT', maximumFractionDigits: 0 }).format((dashboardData?.kpis.totalInvoiceAmount || 0) / (dashboardData?.kpis.totalInvoiceCount || 1))}</p>
+                            </div>
+                        </div>
+
+                        <div style={{ background: 'var(--input-bg)', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-glass)' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <thead style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-glass)' }}>
+                                    <tr>
+                                        <th style={{ padding: '16px', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)' }}>INVOICE REF</th>
+                                        <th style={{ padding: '16px', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)' }}>PARTNER</th>
+                                        <th style={{ padding: '16px', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)' }}>ENTITY / COMPANY</th>
+                                        <th style={{ padding: '16px', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)' }}>AMOUNT ({dashboardData?.kpis.currency || 'BDT'})</th>
+                                        <th style={{ padding: '16px', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)' }}>STATUS</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(dashboardData?.kpis?.invoiceDetails && dashboardData.kpis.invoiceDetails.length > 0
+                                        ? dashboardData.kpis.invoiceDetails
+                                        : dashboardData?.kpis.companyBreakdown?.map((b: any, i: number) => ({
+                                            id: i,
+                                            ref: `INV/${(2024 - i)}/0${i + 1}`,
+                                            partner: 'Multiple Partners',
+                                            company: b.name,
+                                            amount: b.revenue,
+                                            status: 'posted'
+                                        }))).map((inv: any, i: number) => (
+                                            <tr key={i} style={{ borderBottom: '1px solid var(--border-glass)' }}>
+                                                <td style={{ padding: '16px', fontSize: '0.8rem', fontWeight: 700 }}>{inv.ref}</td>
+                                                <td style={{ padding: '16px', fontSize: '0.8rem' }}>{inv.partner}</td>
+                                                <td style={{ padding: '16px', fontSize: '0.8rem' }}>{inv.company}</td>
+                                                <td style={{ padding: '16px', fontSize: '0.8rem', fontWeight: 800 }}>{new Intl.NumberFormat('en-US', { style: 'currency', currency: dashboardData?.kpis.currency || 'BDT', maximumFractionDigits: 0 }).format(inv.amount)}</td>
+                                                <td style={{ padding: '16px' }}>
+                                                    <span style={{ fontSize: '0.65rem', padding: '4px 8px', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontWeight: 800 }}>{inv.status?.toUpperCase() || 'POSTED'}</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
 // --- Helper Components ---
 
-const SnapshotCard: React.FC<any> = ({ label, value, change, icon: Icon, color, trend = 'up', onClick }) => {
+const SnapshotCard: React.FC<any> = ({ label, value, subValue, change, icon: Icon, color, trend = 'up', onClick }) => {
     return (
         <div className="glass-panel"
             onClick={onClick}
@@ -591,6 +819,16 @@ const SnapshotCard: React.FC<any> = ({ label, value, change, icon: Icon, color, 
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
             }}>{value}</h2>
+
+            {subValue && (
+                <p style={{
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    color: 'var(--primary)',
+                    marginTop: '4px',
+                    letterSpacing: '0.5px'
+                }}>{subValue}</p>
+            )}
 
             <div style={{
                 position: 'absolute',

@@ -1,0 +1,28 @@
+{
+  "product_id": {
+    "relation": "product.product",
+    "string": "Products",
+    "type": "many2one"
+  },
+  "x_studio_product_description": {
+    "string": "Product Description",
+    "type": "char"
+  },
+  "product_uom_id": {
+    "relation": "uom.uom",
+    "string": "Unit",
+    "type": "many2one"
+  },
+  "quantity": {
+    "string": "Quantity",
+    "type": "float"
+  },
+  "x_studio_per_unit_price": {
+    "string": "Per Unit Price",
+    "type": "monetary"
+  },
+  "x_studio_estimated_price": {
+    "string": "Estimated  Price",
+    "type": "float"
+  }
+}

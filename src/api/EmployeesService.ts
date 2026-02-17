@@ -13,7 +13,7 @@ export interface Employee {
 export const fetchEmployees = async (domain: any[] = []): Promise<{ success: boolean; data?: Employee[]; error?: string }> => {
     try {
         const records = await odooCall('hr.employee', 'search_read', [domain], {
-            fields: ['id', 'name', 'department_id', 'parent_id', 'user_id', 'company_id', 'image_128']
+            fields: ['id', 'name', 'work_email', 'identification_id', 'department_id', 'parent_id', 'user_id', 'company_id', 'image_128']
         });
         return { success: true, data: records };
     } catch (error: any) {

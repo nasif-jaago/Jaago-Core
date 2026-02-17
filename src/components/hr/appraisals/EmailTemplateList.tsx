@@ -38,11 +38,11 @@ const EmailTemplateList: React.FC<EmailTemplateListProps> = ({ onBack }) => {
         setLoading(true);
         try {
             const response = await AppraisalService.deleteEmailTemplate(templateId);
-            if (response.success) {
+            if (response.success && response.data) {
                 alert('Template deleted successfully!');
                 await fetchTemplates();
             } else {
-                alert('Failed to delete template.');
+                alert('Failed to delete template: ' + (response.data === false ? 'Odoo restricted deletion.' : (response.error || 'Unknown error')));
             }
         } catch (error) {
             console.error('Error deleting template:', error);

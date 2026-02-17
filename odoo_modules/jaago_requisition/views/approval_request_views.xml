@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="approval_request_view_form_inherit" model="ir.ui.view">
+        <field name="name">approval.request.view.form.inherit.jaago</field>
+        <field name="model">approval.request</field>
+        <field name="inherit_id" ref="approvals.approval_request_view_form"/>
+        <field name="arch" type="xml">
+            <!-- Header buttons -->
+            <xpath expr="//header" position="inside">
+                <button name="action_approve" string="Approve" type="object" class="btn-primary" 
+                        attrs="{'invisible': [('can_approve', '=', False)]}"/>
+                <button name="action_refuse" string="Refuse" type="object" class="btn-secondary" 
+                        attrs="{'invisible': [('can_refuse', '=', False)]}"/>
+                <button name="action_draft" string="Reset to Draft" type="object" 
+                        attrs="{'invisible': [('request_status', '!=', 'refused')]}"/>
+            </xpath>
+
+            <!-- Status bar -->
+            <xpath expr="//field[@name='request_status']" position="replace">
+                <field name="request_status" widget="statusbar" statusbar_visible="new,pending,approved,refused"/>
+            </xpath>
+
+            <!-- Main form layout -->
+            <xpath expr="//sheet" position="inside">
+                <div class="oe_title">
+                    <label for="name" string="Requisition Subject"/>
+                    <h1>
+                        <field name="name" attrs="{'readonly': [('can_edit', '=', False)]}"/>
+                    </h1>
+                </div>
+                <group>
+                    <group string="Basic Information">
+                        <field name="category_id" attrs="{'readonly': [('can_edit', '=', False)]}"/>
+                        <field name="create_date" readonly="1" string="Created on"/>
+                        <field name="date" attrs="{'readonly': [('can_edit', '=', False)]}" string="Estimated Date"/>
+                        <field name="request_owner_id" attrs="{'readonly': [('can_edit', '=', False)]}"/>
+                        <field name="company_id" attrs="{'readonly': [('can_edit', '=', False)]}"/>
+                    </group>
+                    <group string="Project &amp; Budget">
+                        <field name="x_studio_projects_name" attrs="{'readonly': [('can_edit', '=', False)]}"/>
+                        <field name="x_studio_project_code"/>
+                        <field name="x_studio_budget_amount" attrs="{'readonly': [('can_edit', '=', False)]}"/>
+                        <field name="reference" attrs="{'readonly': [('can_edit', '=', False)]}"/>
+                        <field name="pr_number" attrs="{'invisible': [('pr_number', '=', False)]}"/>
+                    </group>
+                </group>
+                
+                <notebook>
+                    <page string="Description &amp; Instructions">
+                        <group>
+                            <field name="x_studio_reason_for_purchase" attrs="{'readonly': [('can_edit', '=', False)]}"/>
+                            <field name="x_studio_delivery_instructions" attrs="{'readonly': [('can_edit', '=', False)]}"/>
+                        </group>
+                    </page>
+                    <page string="Products/Services">
+                        <field name="product_line_ids" attrs="{'readonly': [('can_edit', '=', False)]}">
+                            <tree editable="bottom">
+                                <field name="sequence" widget="handle"/>
+                                <field name="product_id"/>
+                                <field name="x_studio_product_description"/>
+                                <field name="product_uom_id"/>
+                                <field name="quantity"/>
+                                <field name="x_studio_per_unit_price"/>
+                                <field name="x_studio_estimated_price" sum="Total Estimated Price"/>
+                            </tree>
+                        </field>
+                        <group class="oe_subtotal_footer oe_right">
+                            <field name="x_studio_total_amount" class="oe_subtotal_footer_separator"/>
+                        </group>
+                    </page>
+                    <page string="Approval Status">
+                        <field name="approval_history_ids">
+                            <tree decoration-info="decision == 'pending'" decoration-success="decision == 'approved'" decoration-danger="decision == 'refused'">
+                                <field name="sequence"/>
+                                <field name="step_name"/>
+                                <field name="approver_id"/>
+                                <field name="decision"/>
+                                <field name="decision_date"/>
+                                <field name="comments"/>
+                            </tree>
+                        </field>
+                    </page>
+                </notebook>
+            </xpath>
+            
+            <!-- Hide unwanted standard fields -->
+            <xpath expr="//field[@name='amount']" position="attributes">
+                <field name="invisible">1</field>
+            </xpath>
+            <xpath expr="//field[@name='reason']" position="attributes">
+                <field name="invisible">1</field>
+            </xpath>
+            
+            <field name="can_approve" invisible="1"/>
+            <field name="can_refuse" invisible="1"/>
+            <field name="can_edit" invisible="1"/>
+        </field>
+    </record>
+
+    <!-- Tree View -->
+    <record id="approval_request_view_tree_inherit" model="ir.ui.view">
+        <field name="name">approval.request.view.tree.inherit.jaago</field>
+        <field name="model">approval.request</field>
+        <field name="inherit_id" ref="approvals.approval_request_view_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='request_owner_id']" position="after">
+                <field name="x_studio_projects_name"/>
+                <field name="x_studio_total_amount" sum="Total Requisitions Amount"/>
+                <field name="pr_number"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

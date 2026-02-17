@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, Mail, Lock, Key, Shield, FileText, DollarSign, Users, Package, Settings as SettingsIcon, RefreshCw } from 'lucide-react';
+import { X, User, Mail, Lock, Key, Shield, RefreshCw } from 'lucide-react';
 import { supabaseAdmin } from '../../lib/supabase';
 
 interface SupabaseUserModalProps {
@@ -8,33 +8,81 @@ interface SupabaseUserModalProps {
     onUpdate: () => void;
 }
 
-// Available dashboard/page access options organized by department
-const DEPARTMENT_APPS = {
-    'Finance': [
-        { id: 'finance_dashboard', name: 'Finance Dashboard', icon: DollarSign },
-        { id: 'invoices', name: 'Invoices', icon: FileText },
-        { id: 'expenses', name: 'Expenses', icon: DollarSign }
-    ],
-    'HR': [
-        { id: 'hr_dashboard', name: 'HR Dashboard', icon: Users },
-        { id: 'employees', name: 'Employees', icon: Users },
-        { id: 'leaves', name: 'Leave Management', icon: FileText }
-    ],
-    'Procurement': [
-        { id: 'procurement_dashboard', name: 'Procurement Dashboard', icon: Package },
-        { id: 'purchase_orders', name: 'Purchase Orders', icon: FileText },
-        { id: 'vendors', name: 'Vendors', icon: Users }
-    ],
-    'Admin': [
-        { id: 'system_admin', name: 'System Administration', icon: SettingsIcon },
-        { id: 'contacts', name: 'Contacts', icon: Users },
-        { id: 'settings', name: 'Settings', icon: SettingsIcon }
-    ],
-    'Strategic': [
-        { id: 'strategic_overview', name: 'Strategic Overview', icon: FileText },
-        { id: 'analytics', name: 'Analytics', icon: FileText }
-    ]
-};
+// Comprehensive list of all pages for permissions
+const ALL_PAGES = [
+    { id: 'strategic_overview', name: 'Strategic Overview', department: 'Executive' },
+    { id: 'finance_dashboard', name: 'Finance Dashboard', department: 'Finance' },
+    { id: 'hr_dashboard', name: 'HR Dashboard', department: 'HR' },
+    { id: 'procurement_dashboard', name: 'Procurement Dashboard', department: 'Procurement' },
+    { id: 'system_admin', name: 'System Administration', department: 'Admin' },
+    { id: 'employees', name: 'Employees', department: 'HR' },
+    { id: 'timeoff', name: 'Time Off', department: 'HR' },
+    { id: 'recruitment', name: 'Recruitment', department: 'HR' },
+    { id: 'attendance', name: 'Attendance', department: 'HR' },
+    { id: 'payroll', name: 'Payroll', department: 'HR' },
+    { id: 'appraisals', name: 'Appraisals', department: 'HR' },
+    { id: 'inventory', name: 'Inventory', department: 'Operations' },
+    { id: 'purchase', name: 'Purchase', department: 'Finance' },
+    { id: 'crm', name: 'CRM', department: 'Sales' },
+    { id: 'projects', name: 'Projects', department: 'Operations' },
+    { id: 'tasks', name: 'Tasks', department: 'Operations' },
+    { id: 'accounting', name: 'Accounting', department: 'Finance' },
+    { id: 'expenses', name: 'Expenses', department: 'Finance' },
+    { id: 'meetingroom', name: 'Meeting Room', department: 'Admin' },
+    { id: 'helpdesk', name: 'Help Desk', department: 'Admin' },
+    { id: 'maintenance', name: 'Maintenance', department: 'Admin' },
+    { id: 'timesheet', name: 'Time Sheets', department: 'HR' },
+    { id: 'sales', name: 'Sales', department: 'Sales' },
+    { id: 'subscriptions', name: 'Subscriptions', department: 'Sales' },
+    { id: 'cwdteamwork', name: 'CWD Teamwork', department: 'Operations' },
+    { id: 'todos', name: 'To-do', department: 'General' },
+    { id: 'contacts', name: 'Contacts', department: 'General' },
+    { id: 'settings', name: 'Settings', department: 'General' },
+];
+
+const PermissionToggle: React.FC<{
+    label: string;
+    isActive: boolean;
+    onToggle: () => void;
+}> = ({ label, isActive, onToggle }) => (
+    <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '12px 16px',
+        background: 'var(--input-bg)',
+        border: '1px solid var(--border-glass)',
+        borderRadius: '12px',
+        marginBottom: '8px',
+        transition: 'all 0.3s ease'
+    }}>
+        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>{label}</span>
+        <div
+            onClick={onToggle}
+            style={{
+                width: '44px',
+                height: '24px',
+                borderRadius: '12px',
+                background: isActive ? '#10b981' : '#ef4444',
+                position: 'relative',
+                cursor: 'pointer',
+                transition: 'background 0.3s ease',
+                boxShadow: isActive ? '0 0 10px rgba(16, 185, 129, 0.4)' : '0 0 10px rgba(239, 68, 68, 0.4)'
+            }}
+        >
+            <div style={{
+                width: '18px',
+                height: '18px',
+                borderRadius: '50%',
+                background: '#fff',
+                position: 'absolute',
+                top: '3px',
+                left: isActive ? '23px' : '3px',
+                transition: 'left 0.3s ease'
+            }} />
+        </div>
+    </div>
+);
 
 const SupabaseUserModal: React.FC<SupabaseUserModalProps> = ({ user, onClose, onUpdate }) => {
     const [activeTab, setActiveTab] = useState<'profile' | 'permissions'>('profile');
@@ -65,9 +113,7 @@ const SupabaseUserModal: React.FC<SupabaseUserModalProps> = ({ user, onClose, on
                 }
             };
 
-            // Update in Supabase
             const { error } = await supabaseAdmin.auth.admin.updateUserById(user.id, updates);
-
             if (error) throw error;
 
             setMessage({ type: 'success', text: 'Profile updated successfully!' });
@@ -78,7 +124,6 @@ const SupabaseUserModal: React.FC<SupabaseUserModalProps> = ({ user, onClose, on
         } catch (error: any) {
             setMessage({ type: 'error', text: error.message || 'Failed to update profile' });
         }
-
         setLoading(false);
     };
 
@@ -87,7 +132,6 @@ const SupabaseUserModal: React.FC<SupabaseUserModalProps> = ({ user, onClose, on
             setMessage({ type: 'error', text: 'Passwords do not match!' });
             return;
         }
-
         if (newPassword.length < 6) {
             setMessage({ type: 'error', text: 'Password must be at least 6 characters' });
             return;
@@ -95,15 +139,12 @@ const SupabaseUserModal: React.FC<SupabaseUserModalProps> = ({ user, onClose, on
 
         setLoading(true);
         setMessage(null);
-
         try {
             if (!user?.id) throw new Error('User ID not found');
             const { error } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
                 password: newPassword
             });
-
             if (error) throw error;
-
             setMessage({ type: 'success', text: 'Password reset successfully!' });
             setNewPassword('');
             setConfirmPassword('');
@@ -111,14 +152,12 @@ const SupabaseUserModal: React.FC<SupabaseUserModalProps> = ({ user, onClose, on
         } catch (error: any) {
             setMessage({ type: 'error', text: error.message || 'Failed to reset password' });
         }
-
         setLoading(false);
     };
 
     const handleUpdatePermissions = async () => {
         setLoading(true);
         setMessage(null);
-
         try {
             if (!user?.id) throw new Error('User ID not found');
             const { error } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
@@ -127,9 +166,7 @@ const SupabaseUserModal: React.FC<SupabaseUserModalProps> = ({ user, onClose, on
                     app_access: selectedApps
                 }
             });
-
             if (error) throw error;
-
             setMessage({ type: 'success', text: 'Permissions updated successfully!' });
             setTimeout(() => {
                 onUpdate();
@@ -138,7 +175,6 @@ const SupabaseUserModal: React.FC<SupabaseUserModalProps> = ({ user, onClose, on
         } catch (error: any) {
             setMessage({ type: 'error', text: error.message || 'Failed to update permissions' });
         }
-
         setLoading(false);
     };
 
@@ -160,13 +196,13 @@ const SupabaseUserModal: React.FC<SupabaseUserModalProps> = ({ user, onClose, on
             overflow: 'auto'
         }}>
             <div className="glass-panel fade-in" style={{
-                width: '100%', maxWidth: '900px', padding: '0',
-                border: '1px solid var(--primary)', borderRadius: '24px',
-                position: 'relative', maxHeight: '90vh', overflow: 'auto'
+                width: '100%', maxWidth: '650px', padding: '0',
+                border: '1px solid var(--border-glass)', borderRadius: '24px',
+                position: 'relative', maxHeight: '90vh', overflow: 'auto',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
             }}>
-                {/* Modal Header */}
                 <div style={{
-                    padding: '32px', borderBottom: '1px solid var(--border-glass)',
+                    padding: '24px', borderBottom: '1px solid var(--border-glass)',
                     background: 'var(--bg-surface)', position: 'sticky', top: 0, zIndex: 1
                 }}>
                     <button
@@ -178,32 +214,34 @@ const SupabaseUserModal: React.FC<SupabaseUserModalProps> = ({ user, onClose, on
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                         <div style={{
-                            width: '80px', height: '80px', borderRadius: '20px',
+                            width: '60px', height: '60px', borderRadius: '16px',
                             background: 'var(--primary-gradient)', color: '#000',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontWeight: 900, fontSize: '2rem'
+                            fontWeight: 900, fontSize: '1.5rem'
                         }}>
                             {user.email?.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                            <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>
+                            <h2 style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>
                                 User Management
                             </h2>
-                            <p style={{ color: 'var(--text-dim)', fontSize: '1rem', marginTop: '4px' }}>{user?.email}</p>
+                            <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginTop: '4px' }}>{user?.email}</p>
                             <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                                 <span style={{
-                                    padding: '4px 12px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800,
+                                    padding: '3px 10px', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 800,
                                     background: 'rgba(99, 102, 241, 0.1)', color: '#818cf8',
-                                    border: '1px solid rgba(99, 102, 241, 0.2)'
+                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    boxShadow: '0 0 10px rgba(129, 140, 248, 0.3)'
                                 }}>
                                     SUPABASE AUTH
                                 </span>
                                 <span style={{
-                                    padding: '4px 12px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 800,
+                                    padding: '3px 10px', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 800,
                                     background: role === 'admin' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
                                     color: role === 'admin' ? '#ef4444' : '#10b981',
                                     border: role === 'admin' ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(16, 185, 129, 0.2)',
-                                    textTransform: 'uppercase'
+                                    textTransform: 'uppercase',
+                                    boxShadow: role === 'admin' ? '0 0 10px rgba(239, 68, 68, 0.3)' : '0 0 10px rgba(16, 185, 129, 0.3)'
                                 }}>
                                     {role}
                                 </span>
@@ -211,37 +249,35 @@ const SupabaseUserModal: React.FC<SupabaseUserModalProps> = ({ user, onClose, on
                         </div>
                     </div>
 
-                    {/* Tabs */}
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                         <button
                             onClick={() => setActiveTab('profile')}
                             style={{
-                                padding: '10px 20px', borderRadius: '12px', cursor: 'pointer',
+                                padding: '8px 16px', borderRadius: '10px', cursor: 'pointer',
                                 background: activeTab === 'profile' ? 'var(--primary)' : 'var(--input-bg)',
                                 color: activeTab === 'profile' ? '#000' : 'var(--text-main)',
                                 border: '1px solid var(--border-glass)',
-                                fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px'
+                                fontWeight: 700, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px'
                             }}
                         >
-                            <User size={16} /> Profile
+                            <User size={14} /> Profile
                         </button>
                         <button
                             onClick={() => setActiveTab('permissions')}
                             style={{
-                                padding: '10px 20px', borderRadius: '12px', cursor: 'pointer',
+                                padding: '8px 16px', borderRadius: '10px', cursor: 'pointer',
                                 background: activeTab === 'permissions' ? 'var(--primary)' : 'var(--input-bg)',
                                 color: activeTab === 'permissions' ? '#000' : 'var(--text-main)',
                                 border: '1px solid var(--border-glass)',
-                                fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px'
+                                fontWeight: 700, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px'
                             }}
                         >
-                            <Shield size={16} /> Permissions
+                            <Shield size={14} /> Permissions
                         </button>
                     </div>
                 </div>
 
-                {/* Modal Body */}
-                <div style={{ padding: '32px' }}>
+                <div style={{ padding: '24px' }}>
                     {message && (
                         <div style={{
                             marginBottom: '20px', padding: '12px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 600,
@@ -255,7 +291,6 @@ const SupabaseUserModal: React.FC<SupabaseUserModalProps> = ({ user, onClose, on
 
                     {activeTab === 'profile' && (
                         <div>
-                            {/* Profile Info */}
                             <div style={{ marginBottom: '32px' }}>
                                 <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '16px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <User size={20} color="var(--primary)" /> Account Information
@@ -324,10 +359,9 @@ const SupabaseUserModal: React.FC<SupabaseUserModalProps> = ({ user, onClose, on
                                 </form>
                             </div>
 
-                            {/* Password Reset */}
                             <div>
                                 <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '16px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <Key size={20} color="var(--primary)" /> Reset Password
+                                    <Lock size={20} color="var(--primary)" /> Reset Password
                                 </h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                     <div>
@@ -384,49 +418,22 @@ const SupabaseUserModal: React.FC<SupabaseUserModalProps> = ({ user, onClose, on
                                 <Shield size={20} color="var(--primary)" /> Department-wise Access Rights
                             </h3>
 
-                            {Object.entries(DEPARTMENT_APPS).map(([department, apps]) => (
-                                <div key={department} style={{ marginBottom: '24px' }}>
-                                    <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                        {department}
-                                    </h4>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-                                        {apps.map((app) => {
-                                            const Icon = app.icon;
-                                            const isSelected = selectedApps.includes(app.id);
-                                            return (
-                                                <div
-                                                    key={app.id}
-                                                    onClick={() => toggleApp(app.id)}
-                                                    className="glass-panel"
-                                                    style={{
-                                                        padding: '16px', borderRadius: '12px', cursor: 'pointer',
-                                                        background: isSelected ? 'rgba(99, 102, 241, 0.1)' : 'var(--input-bg)',
-                                                        border: `2px solid ${isSelected ? '#818cf8' : 'var(--border-glass)'}`,
-                                                        display: 'flex', alignItems: 'center', gap: '12px',
-                                                        transition: 'all 0.2s'
-                                                    }}
-                                                >
-                                                    <Icon size={20} color={isSelected ? '#818cf8' : 'var(--text-muted)'} />
-                                                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: isSelected ? '#818cf8' : 'var(--text-main)' }}>
-                                                        {app.name}
-                                                    </span>
-                                                    {isSelected && (
-                                                        <div style={{ marginLeft: 'auto', width: '20px', height: '20px', borderRadius: '50%', background: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                            <span style={{ color: '#fff', fontSize: '0.7rem' }}>✓</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', maxHeight: '500px', overflowY: 'auto', paddingRight: '8px' }}>
+                                {ALL_PAGES.map((page) => (
+                                    <PermissionToggle
+                                        key={page.id}
+                                        label={page.name}
+                                        isActive={selectedApps.includes(page.id)}
+                                        onToggle={() => toggleApp(page.id)}
+                                    />
+                                ))}
+                            </div>
 
                             <button
                                 onClick={handleUpdatePermissions}
                                 disabled={loading}
                                 className="btn-3d"
-                                style={{ width: '100%', padding: '16px', marginTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                style={{ width: '100%', padding: '14px', marginTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem' }}
                             >
                                 {loading ? <RefreshCw className="spin" size={16} /> : <Shield size={16} />}
                                 Save Permissions

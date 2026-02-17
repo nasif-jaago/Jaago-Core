@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="requisition_report_template">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <div class="oe_structure"/>
+                        
+                        <div class="text-center" style="margin-bottom: 20px;">
+                            <h2>Purchase Requisition</h2>
+                            <h3>PR Number: <span t-field="o.pr_number"/></h3>
+                        </div>
+
+                        <div class="row mt32 mb32">
+                            <div class="col-6">
+                                <strong>Subject:</strong> <span t-field="o.name"/><br/>
+                                <strong>Category:</strong> <span t-field="o.category_id.name"/><br/>
+                                <strong>Requested By:</strong> <span t-field="o.request_owner_id.name"/><br/>
+                                <strong>Created on:</strong> <span t-field="o.create_date" t-options='{"widget": "date"}'/><br/>
+                            </div>
+                            <div class="col-6">
+                                <strong>Project:</strong> <span t-field="o.x_studio_projects_name.name"/><br/>
+                                <strong>Activity Code:</strong> <span t-field="o.x_studio_project_code"/><br/>
+                                <strong>Estimated Date:</strong> <span t-field="o.date"/><br/>
+                                <strong>Reference:</strong> <span t-field="o.reference"/><br/>
+                            </div>
+                        </div>
+
+                        <div class="row mt32 mb32">
+                            <div class="col-12">
+                                <strong>Reason for Purchase:</strong><br/>
+                                <p t-field="o.x_studio_reason_for_purchase"/>
+                            </div>
+                        </div>
+
+                        <table class="table table-sm o_main_table mt32">
+                            <thead>
+                                <tr>
+                                    <th>Product/Service</th>
+                                    <th>Description</th>
+                                    <th class="text-right">Quantity</th>
+                                    <th>Unit</th>
+                                    <th class="text-right">Unit Price</th>
+                                    <th class="text-right">Estimated Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="o.product_line_ids" t-as="line">
+                                    <tr>
+                                        <td><span t-field="line.product_id.name"/></td>
+                                        <td><span t-field="line.x_studio_product_description"/></td>
+                                        <td class="text-right"><span t-field="line.quantity"/></td>
+                                        <td><span t-field="line.product_uom_id.name"/></td>
+                                        <td class="text-right"><span t-field="line.x_studio_per_unit_price" t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/></td>
+                                        <td class="text-right"><span t-field="line.x_studio_estimated_price" t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/></td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+
+                        <div class="row justify-content-end" style="margin-top: 10px;">
+                            <div class="col-4">
+                                <table class="table table-sm">
+                                    <tr class="border-black o_total">
+                                        <td><strong>Total EST Amount</strong></td>
+                                        <td class="text-right">
+                                            <span t-field="o.x_studio_total_amount" t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 50px;">
+                            <h4>Approval History</h4>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Step</th>
+                                        <th>Approver</th>
+                                        <th>Decision</th>
+                                        <th>Date</th>
+                                        <th style="width: 200px;">Signature</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="o.approval_history_ids" t-as="h">
+                                        <tr>
+                                            <td><span t-field="h.step_name"/></td>
+                                            <td><span t-field="h.approver_id.name"/></td>
+                                            <td><span t-field="h.decision"/></td>
+                                            <td><span t-field="h.decision_date" t-options='{"widget": "date"}'/></td>
+                                            <td style="border-bottom: 1px solid #ddd; height: 50px;">
+                                                <t t-if="h.decision == 'approved'">
+                                                    <div style="font-size: 10px; color: #666; vertical-align: bottom;">
+                                                        Digitally Signed by <span t-field="h.approver_id.name"/><br/>
+                                                        Date: <span t-field="h.decision_date"/>
+                                                    </div>
+                                                </t>
+                                                <t t-else="">
+                                                    <div style="text-align: center; color: #ccc; padding-top: 15px;">Pending</div>
+                                                </t>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="oe_structure"/>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>
