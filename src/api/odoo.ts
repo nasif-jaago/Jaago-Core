@@ -12,7 +12,12 @@ export const ODOO_CONFIG = {
 
 const IS_MOCK_MODE = false;
 
-// Using the Vite proxy defined in vite.config.ts to avoid CORS
+// In production, we might need a different base URL or no proxy
+// Check if we are running in a production environment
+const IS_PROD = import.meta.env.PROD;
+
+// If we have a proxy on the production server, keep using /odoo-api
+// Otherwise, we might need to point directly to Odoo (though this may hit CORS)
 const BASE_URL = '/odoo-api';
 
 export interface OdooResponse<T> {
@@ -22,6 +27,33 @@ export interface OdooResponse<T> {
     code?: string;
     syncTime: string;
 }
+
+/**
+ * Helper to safely parse JSON and handle HTML error pages
+ * This catches deployment issues where the API path returns index.html instead of JSON.
+ */
+const safeJson = async (response: Response) => {
+    const contentType = response.headers.get('content-type');
+
+    // Check if we received HTML instead of JSON
+    if (contentType && contentType.includes('text/html')) {
+        const text = await response.text();
+        if (text.includes('<!DOCTYPE html>') || text.includes('<html')) {
+            throw new Error(
+                `DEPLOYMENT ERROR: The API proxy "${BASE_URL}" is not configured on the production server. ` +
+                `Current Host: ${window.location.hostname}. ` +
+                `The request returned HTML instead of JSON. Please configure your web server (Nginx/Apache) ` +
+                `to proxy "${BASE_URL}" to "https://jaago-foundation.odoo.com".`
+            );
+        }
+    }
+
+    try {
+        return await response.json();
+    } catch (e) {
+        throw new Error('Failed to parse API response as JSON. The server might be returning an error page instead of data.');
+    }
+};
 
 /**
  * Authenticate and get UID
@@ -46,19 +78,25 @@ export const getUid = async (): Promise<number> => {
         id: Math.floor(Math.random() * 1000)
     };
 
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-    });
-    const result = await response.json();
-    if (result.error) throw new Error(result.error.data?.message || result.error.message);
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
 
-    if (result.result) {
-        cachedUid = result.result;
-        return result.result;
+        const result = await safeJson(response);
+        if (result.error) throw new Error(result.error.data?.message || result.error.message);
+
+        if (result.result) {
+            cachedUid = result.result;
+            return result.result;
+        }
+        throw new Error('Authentication failed');
+    } catch (error: any) {
+        console.error('Odoo Auth Error:', error);
+        throw error;
     }
-    throw new Error('Authentication failed');
 };
 
 /**
@@ -93,10 +131,10 @@ export const odooCall = async (model: string, method: string, args: any[] = [], 
             body: JSON.stringify(body)
         });
 
-        const result = await response.json();
+        const result = await safeJson(response);
         if (result.error) throw new Error(result.error.data?.message || result.error.message);
         return result.result;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Odoo API Error:', error);
         throw error;
     }

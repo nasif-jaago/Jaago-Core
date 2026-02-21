@@ -1,0 +1,12 @@
+{
+    "rewrites": [
+        {
+            "source": "/odoo-api/:path*",
+            "destination": "https://jaago-foundation.odoo.com/:path*"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
+}

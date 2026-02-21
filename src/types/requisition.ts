@@ -46,13 +46,12 @@ export interface RequisitionLine {
     id?: number;
     request_id?: number;
     product_id: number | [number, string] | false;
-    description?: string;
     x_studio_product_description?: string;
     product_uom_id: number | [number, string] | false;
     quantity?: number;
     x_studio_per_unit_price?: number;
     x_studio_estimated_price?: number;
-
+    sequence?: number;
     company_id?: number;
 }
 
