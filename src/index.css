@@ -55,11 +55,38 @@ select option {
   color: var(--text-main);
 }
 
+/* Custom Premium Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   cursor: default;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) rgba(0, 0, 0, 0.2);
 }
 
 body {
@@ -367,12 +394,13 @@ body.mode-c .btn-primary {
 /* --- Core Layout System --- */
 .app-container {
   display: flex;
-  min-height: 100vh;
+  height: 100%;
   width: 100%;
   flex-direction: row;
   background: var(--bg-deep);
   background-attachment: fixed;
-  overflow-x: hidden;
+  overflow: hidden;
+  position: relative;
 }
 
 .sidebar-wrapper {
@@ -434,6 +462,26 @@ body.mode-c .btn-primary {
   opacity: 0;
   pointer-events: none;
   transform: translateX(20px);
+}
+
+/* View Mode Specific Panel Adjustments */
+body.view-tablet {
+  --right-panel-width: 280px;
+}
+
+body.view-mobile {
+  --right-panel-width: 100%;
+}
+
+body.view-mobile .right-panel:not(.collapsed) {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100% !important;
+  z-index: 1500;
+  background: var(--bg-surface);
+  backdrop-filter: blur(25px);
 }
 
 /* --- Form Elements --- */
@@ -607,6 +655,86 @@ body.mode-c .btn-primary {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* --- View Mode Specific Global Adjustments --- */
+body.view-tablet {
+  font-size: 15px;
+}
+
+body.view-mobile {
+  font-size: 14px;
+}
+
+/* Global Content Adjustments */
+body.view-tablet .main-content,
+body.view-mobile .main-content {
+  padding: clamp(0.5rem, 3vw, 1.25rem);
+}
+
+body.view-tablet .glass-panel,
+body.view-mobile .glass-panel {
+  padding: 1.25rem !important;
+  border-radius: 16px !important;
+}
+
+body.view-mobile .glass-panel {
+  padding: 1rem !important;
+}
+
+/* Typography Scaling */
+body.view-tablet h1 {
+  font-size: 2rem !important;
+}
+
+body.view-tablet h2 {
+  font-size: 1.6rem !important;
+}
+
+body.view-tablet h3 {
+  font-size: 1.3rem !important;
+}
+
+body.view-mobile h1 {
+  font-size: 1.6rem !important;
+}
+
+body.view-mobile h2 {
+  font-size: 1.3rem !important;
+}
+
+body.view-mobile h3 {
+  font-size: 1.1rem !important;
+}
+
+body.view-mobile p {
+  font-size: 0.85rem !important;
+}
+
+/* Interactive Elements Scaling */
+body.view-tablet .btn-3d,
+body.view-tablet .btn-primary,
+body.view-mobile .btn-3d,
+body.view-mobile .btn-primary {
+  padding: 8px 16px !important;
+  font-size: 0.8rem !important;
+}
+
+body.view-mobile .nav-item {
+  padding: 10px 12px !important;
+  gap: 8px !important;
+  font-size: 0.8rem !important;
+}
+
+body.view-mobile .input-field,
+body.view-mobile .form-input {
+  padding: 10px 14px !important;
+  font-size: 0.8rem !important;
+}
+
+/* Specific Card Layout Adjustments */
+body.view-mobile .card {
+  padding: 0.75rem !important;
 }
 
 /* Glass Detail Enhancement */

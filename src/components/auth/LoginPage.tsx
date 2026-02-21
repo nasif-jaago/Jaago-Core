@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Mail, Lock, Eye, EyeOff, User, RefreshCw, Target, Rocket } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, RefreshCw, Target, Rocket, Monitor, Tablet, Smartphone, Sparkles, Palette, Settings } from 'lucide-react';
 import JaagoLogo from '../shared/JaagoLogo';
+import { useTheme } from '../../context/ThemeContext';
+import { motion } from 'framer-motion';
 
 const LoginPage: React.FC = () => {
     const [isSignUp, setIsSignUp] = useState(false);
@@ -13,6 +15,7 @@ const LoginPage: React.FC = () => {
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     const { signIn, signUp, resetPassword } = useAuth();
+    const { theme, cycleTheme, viewMode, cycleViewMode } = useTheme();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -52,14 +55,16 @@ const LoginPage: React.FC = () => {
 
     return (
         <div style={{
-            height: '100vh',
+            minHeight: '100vh',
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             background: 'radial-gradient(circle at 50% 50%, #1a1a1a 0%, #050505 100%)',
             color: '#fff',
             fontFamily: "'Plus Jakarta Sans', sans-serif",
-            overflow: 'hidden',
+            overflowX: 'hidden',
+            padding: viewMode === 'mobile' ? '60px 0 20px' : '20px',
             position: 'relative'
         }}>
             {/* 3D Animated Background Elements */}
@@ -124,54 +129,131 @@ const LoginPage: React.FC = () => {
                 .spin { animation: spin 1.5s linear infinite; }
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-                @media (max-width: 1024px) {
-                    .glass-portal { gap: 40px; padding: 40px; }
-                    .vision-card h3, .mission-card h3 { font-size: 1.8rem !important; }
-                }
-
-                @media (max-width: 992px) {
+                @media (max-width: 992px), body.view-tablet, body.view-mobile {
                     .glass-portal {
                         flex-direction: column;
                         width: 95%;
-                        max-width: 500px;
+                        max-width: 450px;
                         padding: 30px;
                         gap: 30px;
                         border-radius: 30px;
-                        margin-top: 80px;
-                        margin-bottom: 80px;
-                        overflow-y: auto;
-                        max-height: calc(100vh - 40px);
+                        margin: 20px auto;
+                        min-height: auto;
+                        box-shadow: 0 20px 50px rgba(0,0,0,0.3);
                     }
                     .hide-on-mobile { display: none !important; }
                     .login-title { font-size: 2.2rem !important; }
+                    .login-subtitle { font-size: 1rem !important; }
                 }
 
-                @media (max-width: 480px) {
-                    .glass-portal { padding: 20px; border-radius: 20px; }
+                @media (max-width: 480px), body.view-mobile {
+                    .glass-portal { 
+                        padding: 24px; 
+                        border-radius: 24px; 
+                        width: calc(100% - 32px); 
+                        margin: 10px auto; 
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+                    }
                     .login-title { font-size: 1.8rem !important; }
-                    .vision-card, .mission-card { padding: 20px; }
-                    .accent-bar { left: 10px; height: 80px; top: 70px; }
+                    .accent-bar { left: 8px; height: 50px; top: 50px; }
+                }
+
+                .show-mobile-only { display: none; }
+                @media (max-width: 768px), body.view-mobile {
+                    .show-mobile-only { display: block !important; }
+                    .hide-on-mobile { display: none !important; }
+                }
+
+                .top-float-controls {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 1000;
+                    display: flex;
+                    gap: 10px;
+                }
+                
+                .login-brand-top {
+                    position: fixed;
+                    top: 20px;
+                    left: 20px;
+                    z-index: 1000;
+                }
+
+                @media (max-width: 768px), body.view-mobile {
+                    .login-brand-top {
+                        display: none !important;
+                    }
+                    .top-float-controls {
+                        top: 15px;
+                        right: 15px;
+                    }
                 }
             `}</style>
 
-            {/* Top Logo */}
-            <div className="hide-on-mobile" style={{ position: 'absolute', top: 40, left: 60, zIndex: 100 }}>
-                <JaagoLogo color="#fff" showFoundation={true} scale={0.7} />
+            {/* Float Controls & Brand (Global) */}
+            <div className="login-brand-top">
+                <JaagoLogo color="#fff" showFoundation={true} scale={0.6} />
             </div>
 
-            {/* Mobile Logo Only */}
-            <div className="show-mobile-only" style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 100 }}>
-                <JaagoLogo color="#fff" showFoundation={false} scale={0.5} />
+            <div className="top-float-controls">
+                <motion.button
+                    onClick={cycleViewMode}
+                    whileHover={{ scale: 1.1, color: 'var(--primary)' }}
+                    whileTap={{ scale: 0.9 }}
+                    style={{
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        color: '#fff',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        padding: '10px',
+                        borderRadius: '12px',
+                        backdropFilter: 'blur(10px)',
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+                    }}
+                    title={`View: ${viewMode.toUpperCase()}`}
+                >
+                    {viewMode === 'desktop' && <Monitor size={20} />}
+                    {viewMode === 'tablet' && <Tablet size={20} />}
+                    {viewMode === 'mobile' && <Smartphone size={20} />}
+                </motion.button>
+
+                <motion.button
+                    onClick={cycleTheme}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    style={{
+                        background: 'var(--primary-gradient)',
+                        border: 'none',
+                        color: '#000',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        padding: '10px',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 15px var(--primary-glow)'
+                    }}
+                    title={`Theme: ${theme.toUpperCase()}`}
+                >
+                    {theme === 'dark' && <Sparkles size={18} />}
+                    {theme === 'mode-b' && <Palette size={18} />}
+                    {theme === 'mode-c' && <Settings size={18} />}
+                </motion.button>
+            </div>
+
+            {/* Mobile Header Logo */}
+            <div className="show-mobile-only" style={{ marginBottom: '30px', textAlign: 'center' }}>
+                <JaagoLogo color="#fff" showFoundation={true} scale={0.5} />
             </div>
 
 
             <div className="glass-portal">
                 <div style={{ flex: 1, maxWidth: '400px' }}>
-                    <div style={{ marginBottom: '40px' }}>
-                        <h1 className="login-title" style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '10px', letterSpacing: '-1px' }}>
+                    <div style={{ marginBottom: viewMode === 'mobile' ? '20px' : '40px' }}>
+                        <h1 className="login-title" style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '8px', letterSpacing: '-1px' }}>
                             {isSignUp ? 'Join Us.' : 'Sign In.'}
                         </h1>
-                        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1.1rem' }}>
+                        <p className="login-subtitle" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1.1rem' }}>
                             Access the JAAGO Core Ecosystem
                         </p>
                     </div>
@@ -219,7 +301,8 @@ const LoginPage: React.FC = () => {
                                 required
                                 style={{
                                     width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                                    padding: '18px 20px 18px 54px', borderRadius: '16px', color: '#fff', fontSize: '1rem', outline: 'none'
+                                    padding: viewMode === 'mobile' ? '14px 18px 14px 50px' : '18px 20px 18px 54px',
+                                    borderRadius: '16px', color: '#fff', fontSize: viewMode === 'mobile' ? '0.9rem' : '1rem', outline: 'none'
                                 }}
                             />
                             <div
@@ -242,8 +325,10 @@ const LoginPage: React.FC = () => {
                             type="submit"
                             disabled={loading}
                             style={{
-                                width: '100%', background: '#F5C518', color: '#000', border: 'none', padding: '18px', borderRadius: '16px',
-                                fontWeight: 800, fontSize: '1.1rem', cursor: 'pointer', transition: 'all 0.3s', marginTop: '10px',
+                                width: '100%', background: '#F5C518', color: '#000', border: 'none',
+                                padding: viewMode === 'mobile' ? '14px' : '18px',
+                                borderRadius: '16px',
+                                fontWeight: 800, fontSize: viewMode === 'mobile' ? '1rem' : '1.1rem', cursor: 'pointer', transition: 'all 0.3s', marginTop: '10px',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
                                 boxShadow: '0 20px 40px rgba(245, 197, 24, 0.2)'
                             }}
@@ -281,7 +366,7 @@ const LoginPage: React.FC = () => {
                             <div style={{ background: 'rgba(245,197,24,0.1)', padding: '10px', borderRadius: '12px' }}>
                                 <Target size={32} color="#F5C518" />
                             </div>
-                            <h3 style={{ fontSize: '2.2rem', fontWeight: 900, color: '#333' }}>Our Vision</h3>
+                            <h3 style={{ fontSize: viewMode === 'mobile' ? '1.5rem' : '2.2rem', fontWeight: 900, color: '#333' }}>Our Vision</h3>
                         </div>
                         <p style={{ fontSize: '1.1rem', lineHeight: '1.6', color: '#555', paddingLeft: '40px' }}>
                             JAAGO Foundation envisions a society free from all forms of exploitation and discrimination, where every child has the opportunity for education, and every youth has the opportunity to realise their potential.
@@ -294,7 +379,7 @@ const LoginPage: React.FC = () => {
                             <div style={{ background: 'rgba(242, 63, 63, 0.1)', padding: '10px', borderRadius: '12px' }}>
                                 <Rocket size={32} color="#f23f3f" />
                             </div>
-                            <h3 style={{ fontSize: '2.2rem', fontWeight: 900, color: '#333' }}>Our Mission</h3>
+                            <h3 style={{ fontSize: viewMode === 'mobile' ? '1.5rem' : '2.2rem', fontWeight: 900, color: '#333' }}>Our Mission</h3>
                         </div>
                         <p style={{ fontSize: '1.1rem', lineHeight: '1.6', color: '#555', paddingLeft: '40px' }}>
                             To bring about substantial improvement in the lives of underprivileged children and youth living in poverty, illiteracy, and social inequality through quality education and youth empowerment.

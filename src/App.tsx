@@ -30,7 +30,7 @@ import ThreeSixtyLogsPage from './components/hr/appraisals/ThreeSixtyLogsPage';
 import FormBuilderPage from './components/hr/appraisals/FormBuilderPage';
 import FormPreview from './components/hr/appraisals/FormPreview';
 import ThreeSixtyQuickInviter from './components/hr/appraisals/ThreeSixtyQuickInviter';
-import { ThemeProvider } from './context/ThemeContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './components/auth/LoginPage';
 import DashboardChatter from './components/dashboard/DashboardChatter';
@@ -42,6 +42,7 @@ import DepartmentLauncher from './components/layout/DepartmentLauncher';
 
 const Layout: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
+  const { viewMode } = useTheme();
   const role = user?.user_metadata?.role || 'user';
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [activeModule, setActiveModule] = useState<string | null>(null);
@@ -225,34 +226,36 @@ const Layout: React.FC = () => {
 
       <motion.button
         onClick={() => setIsRightPanelCollapsed(!isRightPanelCollapsed)}
-        whileHover={{ scale: 1.05, x: isRightPanelCollapsed ? -2 : 2 }}
-        whileTap={{ scale: 0.98 }}
-        className={isRightPanelCollapsed ? "hide-mobile" : ""}
+        whileHover={{ scale: 1.1, x: isRightPanelCollapsed ? -4 : 4 }}
+        whileTap={{ scale: 0.9 }}
+        className={isRightPanelCollapsed && (window.innerWidth < 768 || viewMode === 'mobile') ? "hide-mobile" : ""}
         style={{
-          position: 'fixed',
-          top: '120px',
-          right: isRightPanelCollapsed ? '0px' : 'var(--right-panel-width, 320px)',
-          width: '24px',
-          height: '48px',
-          borderRadius: isRightPanelCollapsed ? '8px 0 0 8px' : '0 8px 8px 0',
+          position: 'absolute',
+          top: '20%',
+          right: isRightPanelCollapsed ?
+            '0px' :
+            (viewMode === 'mobile' ? 'calc(100% - 32px)' : 'var(--right-panel-width, 320px)'),
+          width: '32px',
+          height: '64px',
+          borderRadius: isRightPanelCollapsed ? '12px 0 0 12px' : '0 12px 12px 0',
           background: 'var(--primary-gradient)',
           border: 'none',
-          boxShadow: '0 4px 15px var(--primary-glow)',
+          boxShadow: isRightPanelCollapsed ? '-4px 0 15px var(--primary-glow)' : '4px 0 15px var(--primary-glow)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
           zIndex: 2000,
           color: '#000',
-          transition: 'all 0.3s ease',
+          transition: 'all 0.4s var(--easing)',
           backdropFilter: 'blur(10px)'
         }}
       >
         <motion.div
           animate={{ rotate: isRightPanelCollapsed ? 0 : 180 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
         >
-          <ChevronLeft size={16} />
+          <ChevronLeft size={20} />
         </motion.div>
       </motion.button>
 

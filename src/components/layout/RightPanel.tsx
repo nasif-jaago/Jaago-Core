@@ -6,8 +6,11 @@ import {
     Package, DoorOpen, HelpCircle, Wrench,
     Users2, LineChart, Target, CreditCard,
     ShoppingCart, Calculator, Hourglass, Folder,
-    Contact, Award, CheckCircle2, Bot, Mail, Lock, Eye, EyeOff, LogOut
+    Contact, Award, CheckCircle2, Bot, Mail, Lock, Eye, EyeOff, LogOut,
+    Monitor, Tablet, Smartphone
 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useTheme } from '../../context/ThemeContext';
 
 interface RightPanelProps {
     activeTab: string;
@@ -322,6 +325,7 @@ const mockLogs = [
 
 const RightPanel: React.FC<RightPanelProps> = ({ activeTab, onModuleClick, onOdooDiscussClick, onGoogleChatClick, isCollapsed }) => {
     const [showLogs, setShowLogs] = React.useState(false);
+    const { viewMode, cycleViewMode } = useTheme();
     const getDynamicModules = () => {
         switch (activeTab) {
             case 'Human Resources': return { title: 'HR Modules', modules: hrModules };
@@ -350,9 +354,34 @@ const RightPanel: React.FC<RightPanelProps> = ({ activeTab, onModuleClick, onOdo
         <aside className={`right-panel ${isCollapsed ? 'collapsed' : ''}`}>
             {/* Common Apps Section - NOW FIRST */}
             <div style={{ marginBottom: '1.5rem' }}>
-                <h3 style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.8 }}>
-                    <div style={{ width: '3px', height: '12px', background: 'var(--primary)', borderRadius: '2px' }} />
-                    MODS
+                <h3 style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', opacity: 0.8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '3px', height: '12px', background: 'var(--primary)', borderRadius: '2px' }} />
+                        MODS
+                    </div>
+
+                    {/* Platform View Switcher */}
+                    <motion.button
+                        onClick={(e) => { e.stopPropagation(); cycleViewMode(); }}
+                        whileHover={{ scale: 1.1, color: 'var(--primary)' }}
+                        whileTap={{ scale: 0.9 }}
+                        style={{
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid var(--border-glass)',
+                            color: 'var(--primary)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            padding: '4px',
+                            borderRadius: '8px',
+                            boxShadow: '0 2px 8px rgba(56, 189, 248, 0.1)',
+                            transition: 'all 0.3s ease'
+                        }}
+                        title={`View: ${viewMode.toUpperCase()}`}
+                    >
+                        {viewMode === 'desktop' && <Monitor size={14} />}
+                        {viewMode === 'tablet' && <Tablet size={14} />}
+                        {viewMode === 'mobile' && <Smartphone size={14} />}
+                    </motion.button>
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {commonApps.map((app) => (
