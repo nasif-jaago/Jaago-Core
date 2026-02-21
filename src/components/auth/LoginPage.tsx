@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Mail, Lock, Eye, EyeOff, User, RefreshCw, Target, Rocket, Monitor, Tablet, Smartphone, Sparkles, Palette, Settings } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, RefreshCw, Target, Rocket, Monitor, Tablet, Smartphone, Sparkles, Palette, Settings, Info, AlertCircle } from 'lucide-react';
 import JaagoLogo from '../shared/JaagoLogo';
 import { useTheme } from '../../context/ThemeContext';
 import { motion } from 'framer-motion';
@@ -12,9 +12,10 @@ const LoginPage: React.FC = () => {
     const [name, setName] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null);
+    const [needsVerification, setNeedsVerification] = useState(false);
 
-    const { signIn, signUp, resetPassword } = useAuth();
+    const { signIn, signUp, resetPassword, resendVerificationEmail } = useAuth();
     const { theme, cycleTheme, viewMode, cycleViewMode } = useTheme();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -26,16 +27,36 @@ const LoginPage: React.FC = () => {
             if (isSignUp) {
                 const { error } = await signUp(email, password, name);
                 if (error) throw error;
-                setMessage({ type: 'success', text: 'Account created! Please check your email to verify.' });
+                setNeedsVerification(true);
+                setMessage({ type: 'success', text: 'Verification link sent! Please check your email to activate your account.' });
             } else {
                 const { error } = await signIn(email, password);
-                if (error) throw error;
+                if (error) {
+                    if (error.message.includes('Email not confirmed')) {
+                        setNeedsVerification(true);
+                        setMessage({ type: 'info', text: 'Your email is not verified yet. Please check your inbox or click the button below to resend the link.' });
+                        return;
+                    }
+                    throw error;
+                }
             }
         } catch (error: any) {
             setMessage({ type: 'error', text: error.message || 'Authentication failed' });
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleResendEmail = async () => {
+        if (!email) return;
+        setLoading(true);
+        const { error } = await resendVerificationEmail(email);
+        if (error) {
+            setMessage({ type: 'error', text: error.message });
+        } else {
+            setMessage({ type: 'success', text: 'New verification link sent! Please check your email.' });
+        }
+        setLoading(false);
     };
 
     const handleForgotPassword = async () => {
@@ -337,22 +358,51 @@ const LoginPage: React.FC = () => {
                         </button>
 
                         <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)' }}>
-                            {isSignUp ? 'Have an account? ' : "New here? "}
+                            New to the platform?{" "}
                             <span
-                                onClick={() => setIsSignUp(!isSignUp)}
+                                onClick={() => window.location.search = '?view=request-access'}
                                 style={{ color: '#F5C518', cursor: 'pointer', fontWeight: 700 }}
                             >
-                                {isSignUp ? 'Login' : 'Signup'}
+                                Request Access
                             </span>
                         </p>
 
                         {message && (
                             <div style={{
                                 padding: '15px', borderRadius: '12px', fontSize: '0.9rem', textAlign: 'center',
-                                background: message.type === 'success' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                color: message.type === 'success' ? '#10b981' : '#ef4444'
+                                background: message.type === 'success' ? 'rgba(16, 185, 129, 0.1)' : (message.type === 'info' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(239, 68, 68, 0.1)'),
+                                color: message.type === 'success' ? '#10b981' : (message.type === 'info' ? '#3b82f6' : '#ef4444'),
+                                border: `1px solid ${message.type === 'success' ? 'rgba(16, 185, 129, 0.3)' : (message.type === 'info' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(239, 68, 68, 0.3)')}`
                             }}>
-                                {message.text}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: message.type === 'info' ? '12px' : '0' }}>
+                                    <Info size={16} />
+                                    <span>{message.text}</span>
+                                </div>
+                                {needsVerification && (
+                                    <button
+                                        type="button"
+                                        onClick={handleResendEmail}
+                                        disabled={loading}
+                                        style={{
+                                            background: 'rgba(255,255,255,0.05)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            color: '#fff',
+                                            padding: '8px 16px',
+                                            borderRadius: '8px',
+                                            fontSize: '0.8rem',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '6px',
+                                            width: '100%'
+                                        }}
+                                    >
+                                        {loading ? <RefreshCw className="spin" size={14} /> : 'Resend Verification Email'}
+                                    </button>
+                                )}
                             </div>
                         )}
                     </form>

@@ -33,6 +33,8 @@ import ThreeSixtyQuickInviter from './components/hr/appraisals/ThreeSixtyQuickIn
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './components/auth/LoginPage';
+import RequestAccessPage from './components/auth/RequestAccessPage';
+import AcceptInvitePage from './components/auth/AcceptInvitePage';
 import DashboardChatter from './components/dashboard/DashboardChatter';
 import AIBaba from './components/ai/AIBaba';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -94,19 +96,17 @@ const Layout: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     const view = params.get('view');
 
-    if (view === 'feedback-360') {
-      return <ThreeSixtyFeedbackForm />;
-    }
-    if (view === '360-quick-inviter') {
-      return <ThreeSixtyQuickInviter />;
-    }
+    if (view === 'feedback-360') return <ThreeSixtyFeedbackForm />;
+    if (view === '360-quick-inviter') return <ThreeSixtyQuickInviter />;
+    if (view === 'request-access') return <RequestAccessPage />;
+    if (view === 'accept-invite') return <AcceptInvitePage />;
 
     return <LoginPage />;
   }
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    setActiveModule(null); // Reset module view when changing main tabs
+    setActiveModule(null);
   };
 
   const renderContent = () => {
@@ -119,13 +119,12 @@ const Layout: React.FC = () => {
       if (activeModule === 'expenses') return <ExpensesPage onBack={() => setActiveModule(null)} />;
       if (activeModule === 'onduty') return <OnDutyPage onBack={() => setActiveModule(null)} />;
       if (activeModule === 'appraisals') return <AppraisalsPage onBack={() => setActiveModule(null)} />;
-
       if (activeModule === 'api-settings') return <APISettingsPage onBack={() => setActiveModule(null)} />;
       if (activeModule === 'connectors') return <ConnectorsPage onBack={() => setActiveModule(null)} />;
       if (activeModule === 'appraisal-logs') return <AppraisalLogsView onBack={() => setActiveModule(null)} />;
       if (activeModule === 'appraisal-templates') return <EmailTemplateList onBack={() => setActiveModule(null)} />;
       if (activeModule === 'feedback-360') return <ThreeSixtyFeedbackForm />;
-      if (activeModule === 'appraisal-360-logs') return <ThreeSixtyLogsPage onBack={() => setActiveModule(null)} />; // Added rendering for ThreeSixtyLogsPage
+      if (activeModule === 'appraisal-360-logs') return <ThreeSixtyLogsPage onBack={() => setActiveModule(null)} />;
       if (activeModule === 'form-builder') return <FormBuilderPage />;
       if (activeModule === 'form-preview') {
         const formId = new URLSearchParams(window.location.search).get('id');
@@ -184,10 +183,7 @@ const Layout: React.FC = () => {
             </span>
             <ChevronRight size={14} />
             <span
-              style={{
-                color: activeModule ? 'var(--text-muted)' : 'var(--text-main)',
-                fontWeight: 500,
-              }}
+              style={{ color: activeModule ? 'var(--text-muted)' : 'var(--text-main)', fontWeight: 500 }}
               onClick={() => activeModule && setActiveModule(null)}
               onMouseEnter={(e) => activeModule && (e.currentTarget.style.color = 'var(--primary)')}
               onMouseLeave={(e) => activeModule && (e.currentTarget.style.color = 'var(--text-muted)')}
@@ -209,11 +205,7 @@ const Layout: React.FC = () => {
           {renderContent()}
         </div>
 
-        <DepartmentLauncher
-          isOpen={isLauncherOpen}
-          onClose={() => setIsLauncherOpen(false)}
-          setActiveTab={handleTabChange}
-        />
+        <DepartmentLauncher isOpen={isLauncherOpen} onClose={() => setIsLauncherOpen(false)} setActiveTab={handleTabChange} />
       </main>
 
       <RightPanel
@@ -232,9 +224,7 @@ const Layout: React.FC = () => {
         style={{
           position: 'absolute',
           top: '20%',
-          right: isRightPanelCollapsed ?
-            '0px' :
-            (viewMode === 'mobile' ? 'calc(100% - 32px)' : 'var(--right-panel-width, 320px)'),
+          right: isRightPanelCollapsed ? '0px' : (viewMode === 'mobile' ? 'calc(100% - 32px)' : 'var(--right-panel-width, 320px)'),
           width: '32px',
           height: '64px',
           borderRadius: isRightPanelCollapsed ? '12px 0 0 12px' : '0 12px 12px 0',
@@ -251,20 +241,12 @@ const Layout: React.FC = () => {
           backdropFilter: 'blur(10px)'
         }}
       >
-        <motion.div
-          animate={{ rotate: isRightPanelCollapsed ? 0 : 180 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        >
+        <motion.div animate={{ rotate: isRightPanelCollapsed ? 0 : 180 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
           <ChevronLeft size={20} />
         </motion.div>
       </motion.button>
 
-      <DashboardChatter
-        isOpen={isChatterOpen}
-        onClose={() => setIsChatterOpen(false)}
-        mode={chatterMode}
-        setMode={setChatterMode}
-      />
+      <DashboardChatter isOpen={isChatterOpen} onClose={() => setIsChatterOpen(false)} mode={chatterMode} setMode={setChatterMode} />
 
       <AIBaba
         role={role}

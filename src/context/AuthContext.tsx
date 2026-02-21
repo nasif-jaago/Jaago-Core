@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { createLoginRequest } from '../api/AuthManagementService';
 import type { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -11,6 +12,7 @@ interface AuthContextType {
     signIn: (email: string, password: string) => Promise<{ error: any }>;
     signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
     resetPassword: (email: string) => Promise<{ error: any }>;
+    resendVerificationEmail: (email: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,16 +55,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const signIn = async (email: string, password: string) => {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+        if (!error && data?.user) {
+            const role = data.user.user_metadata?.role;
+            if (role !== 'approved_user' && role !== 'admin') {
+                // Check if they have an approved login request
+                const { data: request } = await supabase.from('login_requests')
+                    .select('status')
+                    .eq('supabase_user_id', data.user.id)
+                    .single();
+
+                if (!request || request.status !== 'Approved') {
+                    await signOut();
+                    return { error: new Error('Your account is pending approval. Please contact the administrator.') };
+                }
+            }
+        }
+
         return { error };
     };
 
     const signUp = async (email: string, password: string, name: string) => {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
-                data: { name }
+                data: { name },
+                emailRedirectTo: window.location.origin
+            }
+        });
+
+        if (!error && data?.user) {
+            // Create a pending login request
+            await createLoginRequest({
+                email,
+                supabase_user_id: data.user.id,
+                employee_name: name,
+                status: 'Pending'
+            });
+        }
+
+        return { error };
+    };
+
+    const resendVerificationEmail = async (email: string) => {
+        const { error } = await supabase.auth.resend({
+            type: 'signup',
+            email,
+            options: {
+                emailRedirectTo: window.location.origin
             }
         });
         return { error };
@@ -76,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, session, loading, signOut, sendMagicLink, signIn, signUp, resetPassword }}>
+        <AuthContext.Provider value={{ user, session, loading, signOut, sendMagicLink, signIn, signUp, resetPassword, resendVerificationEmail }}>
             {children}
         </AuthContext.Provider>
     );
