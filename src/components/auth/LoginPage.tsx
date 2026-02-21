@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Mail, Lock, Eye, EyeOff, User, RefreshCw, Target, Rocket, Monitor, Tablet, Smartphone, Sparkles, Palette, Settings, Info } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, RefreshCw, Target, Rocket, Monitor, Tablet, Smartphone, Sparkles, Palette, Settings, Info, PartyPopper } from 'lucide-react';
 import JaagoLogo from '../shared/JaagoLogo';
 import { useTheme } from '../../context/ThemeContext';
 import { motion } from 'framer-motion';
@@ -14,9 +14,22 @@ const LoginPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null);
     const [needsVerification, setNeedsVerification] = useState(false);
+    const [isWelcomeUser, setIsWelcomeUser] = useState(false);
 
     const { signIn, signUp, resetPassword, resendVerificationEmail } = useAuth();
     const { theme, cycleTheme, viewMode, cycleViewMode } = useTheme();
+
+    // Detect ?welcome=1 param — user arriving via the welcome email link
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('welcome') === '1' || params.has('welcome')) {
+            setIsWelcomeUser(true);
+            setMessage({
+                type: 'info',
+                text: '👋 Welcome! Enter your email address below, then click "Forgot?" to set your password and get started.'
+            });
+        }
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -204,6 +217,29 @@ const LoginPage: React.FC = () => {
 
                     {/* Mobile form */}
                     <div style={{ flex: 1, padding: '28px 24px 48px' }}>
+                        {/* Welcome banner for new users from email */}
+                        {isWelcomeUser && (
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(245,197,24,0.15), rgba(245,197,24,0.05))',
+                                border: '1px solid rgba(245,197,24,0.3)',
+                                borderRadius: '18px', padding: '18px 20px', marginBottom: '20px',
+                                boxShadow: '0 0 30px rgba(245,197,24,0.1)'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                                    <span style={{ fontSize: '1.3rem' }}>🎉</span>
+                                    <span style={{ fontWeight: 800, color: '#F5C518', fontSize: '0.95rem' }}>Welcome to JAAGO Core!</span>
+                                </div>
+                                <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.65)', margin: '0 0 12px', lineHeight: 1.6 }}>
+                                    To set your password:
+                                </p>
+                                <ol style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.65)', paddingLeft: '18px', margin: 0, lineHeight: 1.8 }}>
+                                    <li>Enter your email address below</li>
+                                    <li>Click <strong style={{ color: '#F5C518' }}>"Forgot?"</strong> to receive a password reset link</li>
+                                    <li>Check your email and set a new password</li>
+                                    <li>Return here and sign in!</li>
+                                </ol>
+                            </div>
+                        )}
                         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                             {isSignUp && (
                                 <div style={{ position: 'relative' }}>
@@ -276,10 +312,28 @@ const LoginPage: React.FC = () => {
                         <div style={{ flex: 1 }}>
                             <div style={{ marginBottom: '28px' }}>
                                 <h1 style={{ fontSize: '2.4rem', fontWeight: 900, marginBottom: '6px', letterSpacing: '-1px' }}>
-                                    {isSignUp ? 'Join Us.' : 'Sign In.'}
+                                    {isSignUp ? 'Join Us.' : isWelcomeUser ? '👋 Welcome!' : 'Sign In.'}
                                 </h1>
-                                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem' }}>Access the JAAGO Core Ecosystem</p>
+                                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem' }}>
+                                    {isWelcomeUser ? 'Enter your email & click "Forgot?" to set your password' : 'Access the JAAGO Core Ecosystem'}
+                                </p>
                             </div>
+
+                            {isWelcomeUser && (
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(245,197,24,0.12), rgba(245,197,24,0.04))',
+                                    border: '1px solid rgba(245,197,24,0.25)',
+                                    borderRadius: '16px', padding: '16px 18px', marginBottom: '20px',
+                                    boxShadow: '0 0 25px rgba(245,197,24,0.08)'
+                                }}>
+                                    <ol style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', paddingLeft: '18px', margin: 0, lineHeight: 1.9 }}>
+                                        <li>Enter your <strong style={{ color: '#F5C518' }}>email address</strong> in the field below</li>
+                                        <li>Click <strong style={{ color: '#F5C518' }}>"Forgot?"</strong> — a reset link will be sent to you</li>
+                                        <li>Open your email, click the link, and set a new password</li>
+                                        <li>Return here and sign in with your new password 🚀</li>
+                                    </ol>
+                                </div>
+                            )}
 
                             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                                 {isSignUp && (
@@ -368,10 +422,28 @@ const LoginPage: React.FC = () => {
                         <div style={{ flex: 1, maxWidth: '400px' }}>
                             <div style={{ marginBottom: '40px' }}>
                                 <h1 style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '8px', letterSpacing: '-1px' }}>
-                                    {isSignUp ? 'Join Us.' : 'Sign In.'}
+                                    {isSignUp ? 'Join Us.' : isWelcomeUser ? '👋 Welcome!' : 'Sign In.'}
                                 </h1>
-                                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1.1rem' }}>Access the JAAGO Core Ecosystem</p>
+                                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1.1rem' }}>
+                                    {isWelcomeUser ? 'Enter your email & click "Forgot?" to set your password' : 'Access the JAAGO Core Ecosystem'}
+                                </p>
                             </div>
+
+                            {isWelcomeUser && (
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(245,197,24,0.12), rgba(245,197,24,0.04))',
+                                    border: '1px solid rgba(245,197,24,0.25)',
+                                    borderRadius: '18px', padding: '18px 20px', marginBottom: '28px',
+                                    boxShadow: '0 0 30px rgba(245,197,24,0.08)'
+                                }}>
+                                    <ol style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.65)', paddingLeft: '20px', margin: 0, lineHeight: 2 }}>
+                                        <li>Enter your <strong style={{ color: '#F5C518' }}>email address</strong> below</li>
+                                        <li>Click <strong style={{ color: '#F5C518' }}>"Forgot?"</strong> to request a password reset link</li>
+                                        <li>Check your inbox, click the link & set your password</li>
+                                        <li>Return here and sign in 🚀</li>
+                                    </ol>
+                                </div>
+                            )}
 
                             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                 {isSignUp && (

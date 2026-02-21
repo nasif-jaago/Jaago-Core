@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
     CheckCircle2, XCircle, Search, Clock,
     RefreshCw, AlertCircle, Eye, ClipboardList,
-    Monitor, Globe, History, X, Trash2
+    Monitor, Globe, History, X, Trash2, Mail, Send, Copy, Check, ExternalLink
 } from 'lucide-react';
 import {
     fetchLoginRequests, approveLoginRequest, rejectLoginRequest,
@@ -12,6 +12,249 @@ import {
 import type { LoginRequest } from '../../api/AuthManagementService';
 import { useAuth } from '../../context/AuthContext';
 
+// ── Email Composer Modal ─────────────────────────────────────────────────────
+interface EmailComposerProps {
+    request: LoginRequest;
+    onClose: () => void;
+}
+
+const EmailComposer: React.FC<EmailComposerProps> = ({ request, onClose }) => {
+    const loginUrl = `${window.location.origin}?welcome=1`;
+    const subject = 'Welcome to JAAGO Core System';
+    const body = `Dear ${request.employee_name || 'Team Member'},
+
+Your access request to the JAAGO Core System has been approved!
+
+Please visit the link below to log in and set your password:
+
+${loginUrl}
+
+Steps to get started:
+1. Click the link above to open the login page.
+2. Enter your registered email: ${request.email}
+3. Click "Forgot?" to request a password reset link.
+4. Check your email for the reset link and set your new password.
+5. Log in with your new password.
+
+If you have any issues, please contact the JAAGO IT team.
+
+Best regards,
+JAAGO Foundation Admin Team`;
+
+    const [copied, setCopied] = useState(false);
+    const [bodyCopied, setBodyCopied] = useState(false);
+
+    const mailtoHref = `mailto:${request.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    const handleCopyEmail = () => {
+        navigator.clipboard.writeText(request.email);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleCopyBody = () => {
+        navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`);
+        setBodyCopied(true);
+        setTimeout(() => setBodyCopied(false), 2500);
+    };
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, zIndex: 6000,
+            background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(24px)',
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+            padding: '40px 20px', overflowY: 'auto'
+        }}>
+            <div className="glass-panel scale-in" style={{
+                width: '100%', maxWidth: '640px', borderRadius: '32px',
+                border: '1px solid rgba(245,197,24,0.3)',
+                background: 'rgba(10,10,10,0.97)',
+                boxShadow: '0 0 60px rgba(245,197,24,0.1)',
+                overflow: 'hidden'
+            }}>
+                {/* Header */}
+                <div style={{
+                    background: 'linear-gradient(135deg, rgba(245,197,24,0.15) 0%, rgba(245,197,24,0.05) 100%)',
+                    padding: '28px 32px',
+                    borderBottom: '1px solid rgba(245,197,24,0.15)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <div style={{
+                            width: '48px', height: '48px', borderRadius: '16px',
+                            background: 'rgba(245,197,24,0.15)',
+                            border: '1px solid rgba(245,197,24,0.3)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 0 20px rgba(245,197,24,0.2)'
+                        }}>
+                            <Mail size={22} color="#F5C518" />
+                        </div>
+                        <div>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, color: '#F5C518' }}>
+                                Send Welcome Email
+                            </h3>
+                            <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', margin: '2px 0 0' }}>
+                                Compose and send login invitation
+                            </p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} style={{
+                        background: 'rgba(255,255,255,0.05)', border: 'none',
+                        color: 'rgba(255,255,255,0.5)', cursor: 'pointer',
+                        padding: '10px', borderRadius: '12px', display: 'flex'
+                    }}>
+                        <X size={20} />
+                    </button>
+                </div>
+
+                {/* Fields */}
+                <div style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {/* To */}
+                    <div>
+                        <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', display: 'block', marginBottom: '8px' }}>
+                            TO
+                        </label>
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: '10px',
+                            background: 'rgba(255,255,255,0.04)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '14px', padding: '14px 18px'
+                        }}>
+                            <div style={{
+                                width: '32px', height: '32px', borderRadius: '10px',
+                                background: 'var(--primary-gradient)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: '#000', fontWeight: 800, fontSize: '0.85rem', flexShrink: 0
+                            }}>
+                                {(request.employee_name || request.email).charAt(0).toUpperCase()}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
+                                    {request.employee_name || 'User'}
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)' }}>
+                                    {request.email}
+                                </div>
+                            </div>
+                            <button onClick={handleCopyEmail} style={{
+                                background: copied ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)',
+                                border: `1px solid ${copied ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                                color: copied ? '#10b981' : 'rgba(255,255,255,0.5)',
+                                padding: '6px 10px', borderRadius: '8px', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem',
+                                transition: 'all 0.2s', fontWeight: 600
+                            }}>
+                                {copied ? <Check size={13} /> : <Copy size={13} />}
+                                {copied ? 'Copied!' : 'Copy'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Subject */}
+                    <div>
+                        <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', display: 'block', marginBottom: '8px' }}>
+                            SUBJECT
+                        </label>
+                        <div style={{
+                            background: 'rgba(255,255,255,0.04)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '14px', padding: '14px 18px',
+                            fontSize: '0.9rem', fontWeight: 600, color: 'rgba(255,255,255,0.85)'
+                        }}>
+                            {subject}
+                        </div>
+                    </div>
+
+                    {/* Body */}
+                    <div>
+                        <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', display: 'block', marginBottom: '8px' }}>
+                            MESSAGE BODY
+                        </label>
+                        <div style={{
+                            background: 'rgba(255,255,255,0.04)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '14px', padding: '18px',
+                            fontSize: '0.82rem', lineHeight: '1.8',
+                            color: 'rgba(255,255,255,0.7)',
+                            fontFamily: 'monospace', whiteSpace: 'pre-wrap',
+                            maxHeight: '260px', overflowY: 'auto'
+                        }}>
+                            {body}
+                        </div>
+                    </div>
+
+                    {/* Login URL highlight */}
+                    <div style={{
+                        background: 'rgba(245,197,24,0.07)',
+                        border: '1px solid rgba(245,197,24,0.18)',
+                        borderRadius: '14px', padding: '14px 18px',
+                        display: 'flex', alignItems: 'center', gap: '12px'
+                    }}>
+                        <ExternalLink size={16} color="#F5C518" />
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '0.65rem', color: 'rgba(245,197,24,0.7)', fontWeight: 800, marginBottom: '2px' }}>LOGIN LINK</div>
+                            <div style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#F5C518' }}>{loginUrl}</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Action buttons */}
+                <div style={{
+                    padding: '0 32px 28px',
+                    display: 'flex', flexDirection: 'column', gap: '12px'
+                }}>
+                    {/* Primary: Open email client */}
+                    <a
+                        href={mailtoHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            gap: '10px', padding: '16px 24px',
+                            borderRadius: '16px', textDecoration: 'none',
+                            background: 'linear-gradient(135deg, #F5C518 0%, #e6b800 100%)',
+                            color: '#000', fontWeight: 800, fontSize: '0.95rem',
+                            boxShadow: '0 12px 30px rgba(245,197,24,0.35)',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <Send size={18} />
+                        Open Email Client to Send
+                    </a>
+
+                    {/* Secondary: Copy full email */}
+                    <button
+                        onClick={handleCopyBody}
+                        style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            gap: '10px', padding: '14px 24px',
+                            borderRadius: '16px',
+                            background: bodyCopied ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.05)',
+                            border: `1px solid ${bodyCopied ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.12)'}`,
+                            color: bodyCopied ? '#10b981' : 'rgba(255,255,255,0.7)',
+                            fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        {bodyCopied ? <Check size={18} /> : <Copy size={18} />}
+                        {bodyCopied ? 'Email Content Copied to Clipboard!' : 'Copy Entire Email Content'}
+                    </button>
+
+                    <button onClick={onClose} style={{
+                        padding: '12px', borderRadius: '12px',
+                        border: 'none', background: 'transparent',
+                        color: 'rgba(255,255,255,0.35)', cursor: 'pointer',
+                        fontSize: '0.85rem'
+                    }}>
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 const LoginRequestsPage: React.FC = () => {
     const [requests, setRequests] = useState<LoginRequest[]>([]);
     const [loading, setLoading] = useState(true);
@@ -24,6 +267,8 @@ const LoginRequestsPage: React.FC = () => {
     const [rejectionReason, setRejectionReason] = useState('');
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showEmailComposer, setShowEmailComposer] = useState(false);
+    const [emailTarget, setEmailTarget] = useState<LoginRequest | null>(null);
 
     // Manual Linking State
     const [manualEmail, setManualEmail] = useState('');
@@ -55,8 +300,7 @@ const LoginRequestsPage: React.FC = () => {
         if (res.success) {
             loadRequests();
             if (selectedRequest?.id === id) {
-                // Refresh detailed view
-                const updated = await fetchLoginRequests({ searchTerm: id }); // specific search
+                const updated = await fetchLoginRequests({ searchTerm: id });
                 if (updated.success && updated.data && updated.data.length > 0) setSelectedRequest(updated.data[0]);
                 viewLogs(id);
             }
@@ -103,7 +347,6 @@ const LoginRequestsPage: React.FC = () => {
             loadRequests();
             setManualSearchResult(null);
             setManualEmail('');
-            // Refresh logs and detailed view
             const updated = await fetchLoginRequests({ searchTerm: selectedRequest.id });
             if (updated.success && updated.data && updated.data.length > 0) setSelectedRequest(updated.data[0]);
             viewLogs(selectedRequest.id);
@@ -154,12 +397,31 @@ const LoginRequestsPage: React.FC = () => {
         }
     };
 
+    const openEmailComposer = (req: LoginRequest) => {
+        setEmailTarget(req);
+        setShowEmailComposer(true);
+    };
+
     const stats = {
         total: requests.length,
         pending: requests.filter(r => r.status === 'Pending').length,
         notFound: requests.filter(r => r.status === 'Employee Not Found').length,
         approved: requests.filter(r => r.status === 'Approved').length
     };
+
+    // Status badge helper
+    const statusStyle = (status: string) => ({
+        padding: '4px 10px', borderRadius: '20px', fontSize: '0.65rem', fontWeight: 900,
+        background: status === 'Approved' ? 'rgba(16,185,129,0.1)' :
+            status === 'Rejected' ? 'rgba(239,68,68,0.1)' :
+                status === 'Paused' ? 'rgba(148,163,184,0.1)' :
+                    status === 'Pending' ? 'rgba(245,197,24,0.1)' : 'rgba(239,68,68,0.1)',
+        color: status === 'Approved' ? '#10b981' :
+            status === 'Rejected' ? '#ef4444' :
+                status === 'Paused' ? '#94a3b8' :
+                    status === 'Pending' ? '#f5c518' : '#ef4444',
+        border: '1px solid currentColor'
+    });
 
     return (
         <div className="login-requests-container" style={{ padding: '24px', color: 'var(--text-main)' }}>
@@ -238,6 +500,7 @@ const LoginRequestsPage: React.FC = () => {
                         )}
                         {requests.map(req => (
                             <tr key={req.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                {/* User */}
                                 <td style={{ padding: '16px 24px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                         <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--primary-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 800 }}>
@@ -249,6 +512,7 @@ const LoginRequestsPage: React.FC = () => {
                                         </div>
                                     </div>
                                 </td>
+                                {/* Odoo */}
                                 <td style={{ padding: '16px 24px' }}>
                                     {req.employee_id ? (
                                         <div style={{ opacity: req.status === 'Employee Not Found' ? 0.4 : 1 }}>
@@ -261,6 +525,7 @@ const LoginRequestsPage: React.FC = () => {
                                         </div>
                                     )}
                                 </td>
+                                {/* Requested */}
                                 <td style={{ padding: '16px 24px', fontSize: '0.8rem', color: 'var(--text-dim)' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <Clock size={14} />
@@ -268,74 +533,60 @@ const LoginRequestsPage: React.FC = () => {
                                     </div>
                                     <div style={{ fontSize: '0.7rem', marginLeft: '20px' }}>{new Date(req.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                 </td>
+                                {/* Status */}
                                 <td style={{ padding: '16px 24px' }}>
-                                    <span style={{
-                                        padding: '4px 10px', borderRadius: '20px', fontSize: '0.65rem', fontWeight: 900,
-                                        background: req.status === 'Approved' ? 'rgba(16, 185, 129, 0.1)' :
-                                            req.status === 'Rejected' ? 'rgba(239, 68, 68, 0.1)' :
-                                                req.status === 'Paused' ? 'rgba(148, 163, 184, 0.1)' :
-                                                    req.status === 'Pending' ? 'rgba(245, 197, 24, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                        color: req.status === 'Approved' ? '#10b981' :
-                                            req.status === 'Rejected' ? '#ef4444' :
-                                                req.status === 'Paused' ? '#94a3b8' :
-                                                    req.status === 'Pending' ? '#f5c518' : '#ef4444',
-                                        border: '1px solid currentColor'
-                                    }}>
-                                        {req.status.toUpperCase()}
-                                    </span>
+                                    <span style={statusStyle(req.status)}>{req.status.toUpperCase()}</span>
                                 </td>
+                                {/* Actions */}
                                 <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                                         <button onClick={() => { setSelectedRequest(req); viewLogs(req.id); }} className="btn-secondary" style={{ padding: '8px', borderRadius: '8px' }}>
                                             <Eye size={16} />
                                         </button>
+
+                                        {/* ── SEND EMAIL (always visible for all statuses) ── */}
+                                        <button
+                                            onClick={() => openEmailComposer(req)}
+                                            title="Send Welcome Email"
+                                            style={{
+                                                padding: '8px 12px', borderRadius: '8px', cursor: 'pointer',
+                                                background: 'rgba(245,197,24,0.1)',
+                                                border: '1px solid rgba(245,197,24,0.25)',
+                                                color: '#F5C518', display: 'flex', alignItems: 'center',
+                                                gap: '5px', fontSize: '0.72rem', fontWeight: 700,
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            <Mail size={14} /> Send Email
+                                        </button>
+
                                         {req.status !== 'Approved' && (
-                                            <button
-                                                onClick={() => handleApprove(req.id)}
-                                                disabled={actionLoading}
-                                                className="btn-3d"
-                                                style={{ padding: '8px 16px', fontSize: '0.75rem', background: '#10b981', color: '#fff' }}
-                                            >
+                                            <button onClick={() => handleApprove(req.id)} disabled={actionLoading} className="btn-3d"
+                                                style={{ padding: '8px 16px', fontSize: '0.75rem', background: '#10b981', color: '#fff' }}>
                                                 {actionLoading ? <RefreshCw className="spin" size={14} /> : 'Approve'}
                                             </button>
                                         )}
                                         {req.status === 'Approved' && (
-                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                <button
-                                                    onClick={() => handlePause(req.id)}
-                                                    disabled={actionLoading}
-                                                    className="btn-secondary"
-                                                    style={{ padding: '8px 16px', fontSize: '0.75rem', color: '#ef4444', border: '1px solid #ef4444' }}
-                                                >
-                                                    Pause
-                                                </button>
-                                            </div>
+                                            <button onClick={() => handlePause(req.id)} disabled={actionLoading} className="btn-secondary"
+                                                style={{ padding: '8px 16px', fontSize: '0.75rem', color: '#ef4444', border: '1px solid #ef4444' }}>
+                                                Pause
+                                            </button>
                                         )}
                                         {req.status === 'Paused' && (
                                             <div style={{ display: 'flex', gap: '8px' }}>
-                                                <button
-                                                    onClick={() => handleApprove(req.id)}
-                                                    disabled={actionLoading}
-                                                    className="btn-3d"
-                                                    style={{ padding: '8px 16px', fontSize: '0.75rem', background: '#10b981', color: '#fff' }}
-                                                >
+                                                <button onClick={() => handleApprove(req.id)} disabled={actionLoading} className="btn-3d"
+                                                    style={{ padding: '8px 16px', fontSize: '0.75rem', background: '#10b981', color: '#fff' }}>
                                                     Resume
                                                 </button>
-                                                <button
-                                                    onClick={() => { setSelectedRequest(req); setShowDeleteModal(true); }}
-                                                    className="btn-secondary"
-                                                    style={{ padding: '8px 16px', fontSize: '0.75rem', color: '#ef4444', boxShadow: '0 0 10px rgba(239, 68, 68, 0.3)' }}
-                                                >
+                                                <button onClick={() => { setSelectedRequest(req); setShowDeleteModal(true); }} className="btn-secondary"
+                                                    style={{ padding: '8px 16px', fontSize: '0.75rem', color: '#ef4444', boxShadow: '0 0 10px rgba(239,68,68,0.3)' }}>
                                                     Remove
                                                 </button>
                                             </div>
                                         )}
                                         {(req.status === 'Pending' || req.status === 'Rejected') && (
-                                            <button
-                                                onClick={() => { setSelectedRequest(req); setShowRejectModal(true); }}
-                                                className="btn-secondary"
-                                                style={{ padding: '8px 16px', fontSize: '0.75rem', color: '#ef4444' }}
-                                            >
+                                            <button onClick={() => { setSelectedRequest(req); setShowRejectModal(true); }} className="btn-secondary"
+                                                style={{ padding: '8px 16px', fontSize: '0.75rem', color: '#ef4444' }}>
                                                 Reject
                                             </button>
                                         )}
@@ -347,27 +598,16 @@ const LoginRequestsPage: React.FC = () => {
                 </table>
             </div>
 
-            {/* Reject Modal - NOW TOP ALIGNED */}
+            {/* ── Reject Modal ── */}
             {showRejectModal && selectedRequest && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 4000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '60px 20px', overflowY: 'auto' }}>
-                    <div className="glass-panel scale-in" style={{ width: '100%', maxWidth: '440px', padding: '40px', borderRadius: '32px', border: '1px solid #ef4444', position: 'relative', background: 'rgba(15, 15, 15, 0.98)' }}>
-                        <button
-                            onClick={() => setShowRejectModal(false)}
-                            style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.05)', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '10px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        >
+                    <div className="glass-panel scale-in" style={{ width: '100%', maxWidth: '440px', padding: '40px', borderRadius: '32px', border: '1px solid #ef4444', position: 'relative', background: 'rgba(15,15,15,0.98)' }}>
+                        <button onClick={() => setShowRejectModal(false)} style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.05)', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '10px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <X size={20} />
                         </button>
                         <h3 style={{ fontSize: '1.6rem', fontWeight: 900, marginBottom: '8px', color: '#ef4444' }}>Reject Request</h3>
                         <p style={{ color: 'var(--text-dim)', fontSize: '0.95rem', marginBottom: '28px' }}>Please provide a reason for rejecting {selectedRequest.email}</p>
-
-                        <textarea
-                            className="input-field"
-                            placeholder="Reason for rejection..."
-                            value={rejectionReason}
-                            onChange={e => setRejectionReason(e.target.value)}
-                            style={{ width: '100%', height: '140px', padding: '16px', borderRadius: '18px', marginBottom: '28px' }}
-                        />
-
+                        <textarea className="input-field" placeholder="Reason for rejection..." value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} style={{ width: '100%', height: '140px', padding: '16px', borderRadius: '18px', marginBottom: '28px' }} />
                         <div style={{ display: 'flex', gap: '12px' }}>
                             <button onClick={() => setShowRejectModal(false)} className="btn-secondary" style={{ flex: 1, padding: '14px', borderRadius: '14px' }}>Cancel</button>
                             <button onClick={handleReject} disabled={!rejectionReason || actionLoading} className="btn-3d" style={{ flex: 1, padding: '14px', borderRadius: '14px', background: '#ef4444', color: '#fff' }}>
@@ -378,10 +618,10 @@ const LoginRequestsPage: React.FC = () => {
                 </div>
             )}
 
-            {/* Logs Timeline & Details Overlay - NOW TOP CENTERED MODAL */}
+            {/* ── Logs / Account Management Modal ── */}
             {showLogs && selectedRequest && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(15px)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '40px 20px', overflowY: 'auto' }}>
-                    <div className="glass-panel scale-in" style={{ width: '100%', maxWidth: '800px', padding: '40px', borderRadius: '32px', border: '1px solid var(--border-glass)', position: 'relative', background: 'rgba(15, 15, 15, 0.95)' }}>
+                    <div className="glass-panel scale-in" style={{ width: '100%', maxWidth: '800px', padding: '40px', borderRadius: '32px', border: '1px solid var(--border-glass)', position: 'relative', background: 'rgba(15,15,15,0.95)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: 'var(--primary-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000' }}>
@@ -392,7 +632,7 @@ const LoginRequestsPage: React.FC = () => {
                                     <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Full audit history and technical metadata</p>
                                 </div>
                             </div>
-                            <button onClick={() => { setShowLogs(false); setManualSearchResult(null); setSelectedRequest(null); }} className="btn-secondary" style={{ padding: '10px', borderRadius: '14px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none' }}>
+                            <button onClick={() => { setShowLogs(false); setManualSearchResult(null); setSelectedRequest(null); }} className="btn-secondary" style={{ padding: '10px', borderRadius: '14px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none' }}>
                                 <X size={24} />
                             </button>
                         </div>
@@ -409,7 +649,6 @@ const LoginRequestsPage: React.FC = () => {
                                     <div style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--text-dim)' }}>{selectedRequest.id}</div>
                                 </div>
                             </div>
-
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <Globe size={18} color="var(--text-muted)" />
@@ -430,14 +669,13 @@ const LoginRequestsPage: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Odoo Match Section */}
+                        {/* Odoo Match */}
                         <div style={{ marginBottom: '32px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                                 <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>ODOO EMPLOYEE MATCH</div>
                             </div>
-
                             {selectedRequest.employee_id ? (
-                                <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px', background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
+                                <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px', background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.1)' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                         <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#10b981', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.2rem' }}>
                                             {selectedRequest.employee_name?.charAt(0)}
@@ -453,18 +691,11 @@ const LoginRequestsPage: React.FC = () => {
                                 <div className="glass-panel" style={{ padding: '24px', borderRadius: '20px' }}>
                                     <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: '16px' }}>Auto-matching failed. You can search Odoo manually by email to link this request.</p>
                                     <div style={{ display: 'flex', gap: '12px' }}>
-                                        <input
-                                            className="input-field"
-                                            placeholder="Employee email..."
-                                            value={manualEmail}
-                                            onChange={e => setManualEmail(e.target.value)}
-                                            style={{ flex: 1, height: '42px' }}
-                                        />
+                                        <input className="input-field" placeholder="Employee email..." value={manualEmail} onChange={e => setManualEmail(e.target.value)} style={{ flex: 1, height: '42px' }} />
                                         <button onClick={handleManualSearch} disabled={manualLinkLoading} className="btn-secondary" style={{ padding: '0 16px', height: '42px' }}>
                                             {manualLinkLoading ? <RefreshCw className="spin" size={18} /> : 'Search Odoo'}
                                         </button>
                                     </div>
-
                                     {manualSearchResult && (
                                         <div style={{ marginTop: '20px', padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -472,12 +703,7 @@ const LoginRequestsPage: React.FC = () => {
                                                     <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{manualSearchResult.employee_name}</div>
                                                     <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>{manualSearchResult.department} • {manualSearchResult.designation}</div>
                                                 </div>
-                                                <button
-                                                    onClick={handleManualLink}
-                                                    disabled={actionLoading}
-                                                    className="btn-3d"
-                                                    style={{ padding: '6px 12px', fontSize: '0.7rem' }}
-                                                >
+                                                <button onClick={handleManualLink} disabled={actionLoading} className="btn-3d" style={{ padding: '6px 12px', fontSize: '0.7rem' }}>
                                                     {actionLoading ? <RefreshCw className="spin" size={14} /> : 'Link & Update'}
                                                 </button>
                                             </div>
@@ -496,12 +722,7 @@ const LoginRequestsPage: React.FC = () => {
                                 {logs.map((log, i) => (
                                     <div key={log.id} style={{ display: 'flex', gap: '20px', position: 'relative' }}>
                                         {i < logs.length - 1 && <div style={{ position: 'absolute', left: '11px', top: '24px', bottom: '-12px', width: '2px', background: 'rgba(255,255,255,0.05)' }} />}
-                                        <div style={{
-                                            width: '24px', height: '24px', borderRadius: '50%',
-                                            background: i === 0 ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-                                            border: '4px solid var(--bg-deep)', zIndex: 1,
-                                            boxShadow: i === 0 ? '0 0 10px var(--primary-glow)' : 'none'
-                                        }} />
+                                        <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: i === 0 ? 'var(--primary)' : 'rgba(255,255,255,0.05)', border: '4px solid var(--bg-deep)', zIndex: 1, boxShadow: i === 0 ? '0 0 10px var(--primary-glow)' : 'none', flexShrink: 0 }} />
                                         <div style={{ flex: 1 }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                                 <div>
@@ -517,11 +738,7 @@ const LoginRequestsPage: React.FC = () => {
                                                 )}
                                             </div>
                                             {log.metadata && Object.keys(log.metadata).length > 0 && (
-                                                <div style={{
-                                                    marginTop: '12px', padding: '12px', borderRadius: '12px',
-                                                    background: 'rgba(0,0,0,0.2)', fontSize: '0.75rem', color: 'var(--text-dim)',
-                                                    fontFamily: 'monospace', border: '1px solid rgba(255,255,255,0.03)'
-                                                }}>
+                                                <div style={{ marginTop: '12px', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.2)', fontSize: '0.75rem', color: 'var(--text-dim)', fontFamily: 'monospace', border: '1px solid rgba(255,255,255,0.03)' }}>
                                                     {Object.entries(log.metadata).map(([key, val]: [string, any]) => (
                                                         <div key={key} style={{ display: 'flex', gap: '8px' }}>
                                                             <span style={{ color: 'var(--primary)', opacity: 0.7 }}>{key}:</span>
@@ -536,48 +753,44 @@ const LoginRequestsPage: React.FC = () => {
                             </div>
                         </div>
 
-                        <div style={{ marginTop: '48px', paddingTop: '32px', borderTop: '1px solid var(--border-glass)', display: 'flex', gap: '16px' }}>
+                        {/* Modal bottom actions */}
+                        <div style={{ marginTop: '48px', paddingTop: '32px', borderTop: '1px solid var(--border-glass)', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                            {/* Send Email Button in modal */}
+                            <button
+                                onClick={() => openEmailComposer(selectedRequest)}
+                                style={{
+                                    flex: 1, padding: '16px', borderRadius: '16px',
+                                    background: 'rgba(245,197,24,0.1)',
+                                    border: '1px solid rgba(245,197,24,0.3)',
+                                    color: '#F5C518', fontWeight: 800, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    gap: '10px', fontSize: '0.9rem',
+                                    boxShadow: '0 0 20px rgba(245,197,24,0.1)'
+                                }}
+                            >
+                                <Mail size={18} /> Send Welcome Email
+                            </button>
+
                             {selectedRequest.status === 'Approved' && (
-                                <button
-                                    onClick={() => handlePause(selectedRequest.id)}
-                                    disabled={actionLoading}
-                                    className="btn-secondary"
-                                    style={{ flex: 1, padding: '16px', color: '#ef4444', border: '1px solid #ef4444' }}
-                                >
+                                <button onClick={() => handlePause(selectedRequest.id)} disabled={actionLoading} className="btn-secondary"
+                                    style={{ flex: 1, padding: '16px', color: '#ef4444', border: '1px solid #ef4444' }}>
                                     Pause Access
                                 </button>
                             )}
                             {selectedRequest.status === 'Paused' && (
-                                <button
-                                    onClick={() => handleApprove(selectedRequest.id)}
-                                    disabled={actionLoading}
-                                    className="btn-3d"
-                                    style={{ flex: 1, padding: '16px', background: '#10b981', color: '#fff' }}
-                                >
+                                <button onClick={() => handleApprove(selectedRequest.id)} disabled={actionLoading} className="btn-3d"
+                                    style={{ flex: 1, padding: '16px', background: '#10b981', color: '#fff' }}>
                                     Resume Access
                                 </button>
                             )}
                             {selectedRequest.status === 'Pending' && (
-                                <button
-                                    onClick={() => handleApprove(selectedRequest.id)}
-                                    disabled={actionLoading}
-                                    className="btn-3d"
-                                    style={{ flex: 1, padding: '16px', background: '#10b981', color: '#fff' }}
-                                >
+                                <button onClick={() => handleApprove(selectedRequest.id)} disabled={actionLoading} className="btn-3d"
+                                    style={{ flex: 1, padding: '16px', background: '#10b981', color: '#fff' }}>
                                     {actionLoading ? <RefreshCw className="spin" size={20} /> : 'Approve Access'}
                                 </button>
                             )}
-                            <button
-                                onClick={() => setShowDeleteModal(true)}
-                                disabled={actionLoading}
-                                className="btn-secondary"
-                                style={{
-                                    flex: 1, padding: '16px', color: '#ef4444',
-                                    boxShadow: '0 0 15px rgba(239, 68, 68, 0.4)',
-                                    border: '1px solid rgba(239, 68, 68, 0.5)',
-                                    textShadow: '0 0 8px rgba(239, 68, 68, 0.3)'
-                                }}
-                            >
+                            <button onClick={() => setShowDeleteModal(true)} disabled={actionLoading} className="btn-secondary"
+                                style={{ flex: 1, padding: '16px', color: '#ef4444', boxShadow: '0 0 15px rgba(239,68,68,0.4)', border: '1px solid rgba(239,68,68,0.5)', textShadow: '0 0 8px rgba(239,68,68,0.3)' }}>
                                 Remove User
                             </button>
                         </div>
@@ -585,45 +798,25 @@ const LoginRequestsPage: React.FC = () => {
                 </div>
             )}
 
-            {/* Delete Modal - TOP ALIGNED & NEON */}
+            {/* ── Delete Modal ── */}
             {showDeleteModal && selectedRequest && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 5000, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(25px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '60px 20px', overflowY: 'auto' }}>
-                    <div className="glass-panel scale-in" style={{ width: '100%', maxWidth: '480px', padding: '48px', borderRadius: '32px', border: '1px solid #ef4444', position: 'relative', background: 'rgba(10, 10, 10, 0.98)', boxShadow: '0 0 40px rgba(239, 68, 68, 0.15)' }}>
-                        <button
-                            onClick={() => setShowDeleteModal(false)}
-                            style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '10px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        >
+                    <div className="glass-panel scale-in" style={{ width: '100%', maxWidth: '480px', padding: '48px', borderRadius: '32px', border: '1px solid #ef4444', position: 'relative', background: 'rgba(10,10,10,0.98)', boxShadow: '0 0 40px rgba(239,68,68,0.15)' }}>
+                        <button onClick={() => setShowDeleteModal(false)} style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(239,68,68,0.1)', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '10px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <X size={20} />
                         </button>
                         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                            <div style={{
-                                width: '80px', height: '80px', borderRadius: '24px',
-                                background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                margin: '0 auto 20px',
-                                boxShadow: '0 0 30px rgba(239, 68, 68, 0.3)',
-                                border: '1px solid rgba(239, 68, 68, 0.2)'
-                            }}>
+                            <div style={{ width: '80px', height: '80px', borderRadius: '24px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 0 30px rgba(239,68,68,0.3)', border: '1px solid rgba(239,68,68,0.2)' }}>
                                 <Trash2 size={40} />
                             </div>
-                            <h3 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#ef4444', marginBottom: '8px', textShadow: '0 0 10px rgba(239, 68, 68, 0.5)' }}>Critical Action</h3>
+                            <h3 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#ef4444', marginBottom: '8px', textShadow: '0 0 10px rgba(239,68,68,0.5)' }}>Critical Action</h3>
                             <p style={{ color: 'var(--text-dim)', fontSize: '1rem' }}>Permanently remove <strong>{selectedRequest.email}</strong>?</p>
                         </div>
-
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             <button onClick={() => handleDelete(false)} className="btn-secondary" style={{ padding: '18px', borderRadius: '18px', fontSize: '0.9rem', fontWeight: 700 }}>
                                 Remove Database Request Only
                             </button>
-                            <button
-                                onClick={() => handleDelete(true)}
-                                className="btn-3d"
-                                style={{
-                                    background: '#ef4444', color: '#fff', padding: '18px', borderRadius: '18px',
-                                    fontSize: '0.9rem', fontWeight: 800,
-                                    boxShadow: '0 0 25px rgba(239, 68, 68, 0.6)',
-                                    border: '1px solid #ff4d4d'
-                                }}
-                            >
+                            <button onClick={() => handleDelete(true)} className="btn-3d" style={{ background: '#ef4444', color: '#fff', padding: '18px', borderRadius: '18px', fontSize: '0.9rem', fontWeight: 800, boxShadow: '0 0 25px rgba(239,68,68,0.6)', border: '1px solid #ff4d4d' }}>
                                 Full System Purge
                             </button>
                             <button onClick={() => setShowDeleteModal(false)} className="btn-secondary" style={{ padding: '14px', borderRadius: '14px', border: 'none', color: 'var(--text-muted)' }}>
@@ -632,6 +825,14 @@ const LoginRequestsPage: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* ── Email Composer Modal ── */}
+            {showEmailComposer && emailTarget && (
+                <EmailComposer
+                    request={emailTarget}
+                    onClose={() => { setShowEmailComposer(false); setEmailTarget(null); }}
+                />
             )}
 
             <style>{`

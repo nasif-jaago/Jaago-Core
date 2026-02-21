@@ -40,7 +40,7 @@ import DashboardChatter from './components/dashboard/DashboardChatter';
 import AIBaba from './components/ai/AIBaba';
 import ErrorBoundary from './components/ErrorBoundary';
 import { motion } from 'framer-motion';
-import { RefreshCcw, LayoutGrid, Star, ChevronRight, ChevronLeft, PanelLeftClose } from 'lucide-react';
+import { RefreshCcw, LayoutGrid, Star, ChevronRight } from 'lucide-react';
 import DepartmentLauncher from './components/layout/DepartmentLauncher';
 
 const Layout: React.FC = () => {
@@ -188,7 +188,9 @@ const Layout: React.FC = () => {
         />
       </div>
 
-      {/* ── Neon Sidebar Toggle Button ── */}
+      {/* ══════════════════════════════════════════
+           LEFT SIDEBAR TOGGLE — Neon Orange Arrow
+          ══════════════════════════════════════════ */}
       <motion.button
         id="sidebar-toggle-btn"
         onClick={() => {
@@ -198,44 +200,69 @@ const Layout: React.FC = () => {
             setIsSidebarCollapsed(!isSidebarCollapsed);
           }
         }}
-        whileHover={{ scale: 1.12 }}
-        whileTap={{ scale: 0.9 }}
-        title={isSidebarCollapsed || (!isSidebarOpen && viewMode === 'mobile') ? 'Show Sidebar' : 'Hide Sidebar'}
+        whileHover={{ scale: 1.18 }}
+        whileTap={{ scale: 0.88 }}
+        title={isSidebarCollapsed || (!isSidebarOpen && viewMode === 'mobile') ? 'Open Sidebar' : 'Close Sidebar'}
         style={{
           position: 'fixed',
-          top: '80px',
+          top: '88px',
           left: (() => {
             if (viewMode === 'mobile') {
-              return isSidebarOpen ? 'calc(var(--sidebar-width, 280px) - 14px)' : '0px';
+              return isSidebarOpen ? 'calc(var(--sidebar-width, 280px) - 16px)' : '0px';
             }
             if (viewMode === 'tablet') {
-              // tablet sidebar is always visible as icon-only (80px), never fully collapsed
-              return isSidebarCollapsed ? '66px' : 'calc(var(--sidebar-width, 80px) - 14px)';
+              return isSidebarCollapsed ? '64px' : 'calc(var(--sidebar-width, 80px) - 16px)';
             }
-            // desktop
-            return isSidebarCollapsed ? '0px' : 'calc(var(--sidebar-width, 280px) - 14px)';
+            return isSidebarCollapsed ? '0px' : 'calc(var(--sidebar-width, 280px) - 16px)';
           })(),
           zIndex: 1500,
-          width: '28px',
-          height: '52px',
-          borderRadius: '0 12px 12px 0',
+          width: '32px',
+          height: '42px',
           border: 'none',
+          background: 'transparent',
           cursor: 'pointer',
+          padding: 0,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(180deg, #00f5d4 0%, #00c2a8 100%)',
-          color: '#001a16',
-          transition: 'left 0.4s cubic-bezier(0.4,0,0.2,1), box-shadow 0.3s ease',
-          backdropFilter: 'blur(10px)',
+          transition: 'left 0.4s cubic-bezier(0.4,0,0.2,1)',
+          filter: 'drop-shadow(0 0 6px rgba(255,90,0,0.8)) drop-shadow(0 0 14px rgba(255,40,0,0.5))',
         }}
       >
-        <motion.div
-          animate={{ rotate: (isSidebarCollapsed || (!isSidebarOpen && viewMode === 'mobile')) ? 180 : 0 }}
-          transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+        <motion.svg
+          width="32" height="42" viewBox="0 0 32 42"
+          animate={{
+            scaleX: (isSidebarCollapsed || (!isSidebarOpen && viewMode === 'mobile')) ? -1 : 1
+          }}
+          transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+          style={{ display: 'block' }}
         >
-          <PanelLeftClose size={15} />
-        </motion.div>
+          <defs>
+            <linearGradient id="leftArrowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ff6a00" />
+              <stop offset="50%" stopColor="#ee0979" />
+              <stop offset="100%" stopColor="#ff4500" />
+            </linearGradient>
+            <linearGradient id="leftArrowAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#ffb347" />
+              <stop offset="100%" stopColor="#ff6a00" />
+            </linearGradient>
+          </defs>
+          {/* Main arrow body — pointing RIGHT (show sidebar) */}
+          <polygon
+            points="2,4 28,21 2,38"
+            fill="url(#leftArrowGrad)"
+            opacity="0.95"
+          />
+          {/* Bright leading edge highlight */}
+          <polygon
+            points="2,4 28,21 16,21"
+            fill="url(#leftArrowAccent)"
+            opacity="0.55"
+          />
+          {/* Small neon dot accent */}
+          <circle cx="7" cy="21" r="3.5" fill="#ff9f43" opacity="0.9" />
+        </motion.svg>
       </motion.button>
 
 
@@ -311,34 +338,75 @@ const Layout: React.FC = () => {
         }}
       />
 
+      {/* ══════════════════════════════════════════
+           RIGHT PANEL TOGGLE — Neon Purple Arrow
+          ══════════════════════════════════════════ */}
       <motion.button
+        id="right-panel-toggle-btn"
         onClick={() => setIsRightPanelCollapsed(!isRightPanelCollapsed)}
-        whileHover={{ scale: 1.1, x: isRightPanelCollapsed ? -4 : 4 }}
-        whileTap={{ scale: 0.9 }}
-        className={isRightPanelCollapsed && (window.innerWidth < 768 || viewMode === 'mobile') ? "hide-mobile" : ""}
+        whileHover={{ scale: 1.18 }}
+        whileTap={{ scale: 0.88 }}
+        title={isRightPanelCollapsed ? 'Open Right Panel' : 'Close Right Panel'}
         style={{
-          position: 'absolute',
-          top: '20%',
-          right: isRightPanelCollapsed ? '0px' : (viewMode === 'mobile' ? 'calc(100% - 32px)' : 'var(--right-panel-width, 320px)'),
+          position: 'fixed',
+          top: '88px',
+          right: (() => {
+            if (viewMode === 'mobile') {
+              return isRightPanelCollapsed ? '0px' : 'calc(var(--right-panel-width, 320px) - 16px)';
+            }
+            if (viewMode === 'tablet') {
+              return isRightPanelCollapsed ? '0px' : 'calc(var(--right-panel-width, 280px) - 16px)';
+            }
+            return isRightPanelCollapsed ? '0px' : 'calc(var(--right-panel-width, 320px) - 16px)';
+          })(),
+          zIndex: 2000,
           width: '32px',
-          height: '64px',
-          borderRadius: isRightPanelCollapsed ? '12px 0 0 12px' : '0 12px 12px 0',
-          background: 'var(--primary-gradient)',
+          height: '42px',
           border: 'none',
-          boxShadow: isRightPanelCollapsed ? '-4px 0 15px var(--primary-glow)' : '4px 0 15px var(--primary-glow)',
-          display: 'flex',
+          background: 'transparent',
+          cursor: 'pointer',
+          padding: 0,
+          display: viewMode === 'mobile' && isRightPanelCollapsed ? 'none' : 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          cursor: 'pointer',
-          zIndex: 2000,
-          color: '#000',
-          transition: 'all 0.4s var(--easing)',
-          backdropFilter: 'blur(10px)'
+          transition: 'right 0.4s cubic-bezier(0.4,0,0.2,1)',
+          filter: 'drop-shadow(0 0 6px rgba(180,0,255,0.85)) drop-shadow(0 0 14px rgba(100,0,220,0.55))',
         }}
       >
-        <motion.div animate={{ rotate: isRightPanelCollapsed ? 0 : 180 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
-          <ChevronLeft size={20} />
-        </motion.div>
+        <motion.svg
+          width="32" height="42" viewBox="0 0 32 42"
+          animate={{
+            scaleX: isRightPanelCollapsed ? -1 : 1
+          }}
+          transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+          style={{ display: 'block' }}
+        >
+          <defs>
+            <linearGradient id="rightArrowGrad" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#a855f7" />
+              <stop offset="50%" stopColor="#7c3aed" />
+              <stop offset="100%" stopColor="#4f46e5" />
+            </linearGradient>
+            <linearGradient id="rightArrowAccent" x1="100%" y1="0%" x2="0%" y2="0%">
+              <stop offset="0%" stopColor="#e879f9" />
+              <stop offset="100%" stopColor="#a855f7" />
+            </linearGradient>
+          </defs>
+          {/* Main arrow body — pointing LEFT (close right panel) */}
+          <polygon
+            points="30,4 4,21 30,38"
+            fill="url(#rightArrowGrad)"
+            opacity="0.95"
+          />
+          {/* Bright leading edge highlight */}
+          <polygon
+            points="30,4 4,21 16,21"
+            fill="url(#rightArrowAccent)"
+            opacity="0.55"
+          />
+          {/* Small neon dot accent */}
+          <circle cx="25" cy="21" r="3.5" fill="#e879f9" opacity="0.9" />
+        </motion.svg>
       </motion.button>
 
       <DashboardChatter isOpen={isChatterOpen} onClose={() => setIsChatterOpen(false)} mode={chatterMode} setMode={setChatterMode} />
@@ -354,7 +422,7 @@ const Layout: React.FC = () => {
           }
         }}
       />
-    </div>
+    </div >
   );
 };
 

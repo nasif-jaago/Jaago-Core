@@ -438,48 +438,78 @@ body.mode-c .btn-primary {
   flex-direction: column;
 }
 
-/* ── Neon Sidebar Toggle Button ── */
+/* ══════════════════════════════════════════════════════════
+   LEFT SIDEBAR TOGGLE — Neon Orange Arrow pulse
+   ══════════════════════════════════════════════════════════ */
 #sidebar-toggle-btn {
-  animation: neon-pulse-sidebar 2.8s ease-in-out infinite;
+  animation: left-neon-pulse 2.6s ease-in-out infinite;
 }
 
 #sidebar-toggle-btn:hover {
-  box-shadow:
-    0 0 20px rgba(0, 245, 212, 0.95),
-    6px 0 28px rgba(0, 245, 212, 0.6) !important;
   animation: none;
+  filter:
+    drop-shadow(0 0 10px rgba(255, 90, 0, 1)) drop-shadow(0 0 22px rgba(255, 40, 0, 0.75)) !important;
 }
 
-@keyframes neon-pulse-sidebar {
+@keyframes left-neon-pulse {
 
   0%,
   100% {
-    box-shadow:
-      0 0 8px rgba(0, 245, 212, 0.6),
-      4px 0 14px rgba(0, 245, 212, 0.3);
+    filter:
+      drop-shadow(0 0 4px rgba(255, 90, 0, 0.65)) drop-shadow(0 0 10px rgba(255, 40, 0, 0.35));
   }
 
   50% {
-    box-shadow:
-      0 0 16px rgba(0, 245, 212, 0.9),
-      6px 0 24px rgba(0, 245, 212, 0.55);
+    filter:
+      drop-shadow(0 0 8px rgba(255, 110, 0, 0.95)) drop-shadow(0 0 18px rgba(238, 9, 121, 0.55));
   }
 }
 
-/* On mobile the button sits at exact left:0 when sidebar is closed, 
-   and slides right when the drawer opens */
+/* ══════════════════════════════════════════════════════════
+   RIGHT PANEL TOGGLE — Neon Purple Arrow pulse
+   ══════════════════════════════════════════════════════════ */
+#right-panel-toggle-btn {
+  animation: right-neon-pulse 2.6s ease-in-out infinite;
+  animation-delay: 1.3s;
+  /* offset so they don't pulse in sync */
+}
+
+#right-panel-toggle-btn:hover {
+  animation: none;
+  filter:
+    drop-shadow(0 0 10px rgba(180, 0, 255, 1)) drop-shadow(0 0 22px rgba(100, 0, 220, 0.75)) !important;
+}
+
+@keyframes right-neon-pulse {
+
+  0%,
+  100% {
+    filter:
+      drop-shadow(0 0 4px rgba(168, 85, 247, 0.65)) drop-shadow(0 0 10px rgba(124, 58, 237, 0.35));
+  }
+
+  50% {
+    filter:
+      drop-shadow(0 0 8px rgba(180, 0, 255, 0.95)) drop-shadow(0 0 18px rgba(232, 121, 249, 0.55));
+  }
+}
+
+/* Responsive sizing adjustments */
 @media (max-width: 768px) {
-  #sidebar-toggle-btn {
-    top: 72px !important;
+
+  #sidebar-toggle-btn,
+  #right-panel-toggle-btn {
+    top: 70px !important;
     width: 26px !important;
-    height: 48px !important;
+    height: 36px !important;
   }
 }
 
-/* On tablet: sidebar is icon-only (80px) */
 @media (min-width: 769px) and (max-width: 1024px) {
-  #sidebar-toggle-btn {
-    top: 76px !important;
+
+  #sidebar-toggle-btn,
+  #right-panel-toggle-btn {
+    top: 74px !important;
   }
 }
 
