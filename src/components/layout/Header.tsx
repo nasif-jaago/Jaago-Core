@@ -3,7 +3,7 @@ import { Bell, Search, Menu, ChevronDown, LogOut, Settings } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { motion } from 'framer-motion';
-import { Palette, Sparkles } from 'lucide-react';
+import { Palette, Sparkles, Monitor, Tablet, Smartphone } from 'lucide-react';
 
 const Logo3D = () => (
     <motion.div
@@ -324,6 +324,40 @@ const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                                 outline: 'none'
                             }}
                         />
+                    </div>
+
+                    {/* Platform View Icons */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        background: 'rgba(255,255,255,0.05)',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        border: '1px solid var(--border-glass)',
+                        marginRight: '4px'
+                    }} className="hide-mobile">
+                        <motion.button
+                            whileHover={{ scale: 1.1, color: 'var(--primary)' }}
+                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
+                            title="Desktop View"
+                        >
+                            <Monitor size={16} />
+                        </motion.button>
+                        <motion.button
+                            whileHover={{ scale: 1.1, color: 'var(--primary)' }}
+                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
+                            title="Tablet View"
+                        >
+                            <Tablet size={16} />
+                        </motion.button>
+                        <motion.button
+                            whileHover={{ scale: 1.1, color: 'var(--primary)' }}
+                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', padding: '4px' }}
+                            title="Mobile View"
+                        >
+                            <Smartphone size={16} />
+                        </motion.button>
                     </div>
 
                     {/* Single Theme Toggle */}
