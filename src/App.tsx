@@ -40,7 +40,7 @@ import DashboardChatter from './components/dashboard/DashboardChatter';
 import AIBaba from './components/ai/AIBaba';
 import ErrorBoundary from './components/ErrorBoundary';
 import { motion } from 'framer-motion';
-import { RefreshCcw, LayoutGrid, Star, ChevronRight, ChevronLeft } from 'lucide-react';
+import { RefreshCcw, LayoutGrid, Star, ChevronRight, ChevronLeft, PanelLeftClose } from 'lucide-react';
 import DepartmentLauncher from './components/layout/DepartmentLauncher';
 
 const Layout: React.FC = () => {
@@ -188,6 +188,57 @@ const Layout: React.FC = () => {
         />
       </div>
 
+      {/* ── Neon Sidebar Toggle Button ── */}
+      <motion.button
+        id="sidebar-toggle-btn"
+        onClick={() => {
+          if (viewMode === 'mobile') {
+            setIsSidebarOpen(!isSidebarOpen);
+          } else {
+            setIsSidebarCollapsed(!isSidebarCollapsed);
+          }
+        }}
+        whileHover={{ scale: 1.12 }}
+        whileTap={{ scale: 0.9 }}
+        title={isSidebarCollapsed || (!isSidebarOpen && viewMode === 'mobile') ? 'Show Sidebar' : 'Hide Sidebar'}
+        style={{
+          position: 'fixed',
+          top: '80px',
+          left: (() => {
+            if (viewMode === 'mobile') {
+              return isSidebarOpen ? 'calc(var(--sidebar-width, 280px) - 14px)' : '0px';
+            }
+            if (viewMode === 'tablet') {
+              // tablet sidebar is always visible as icon-only (80px), never fully collapsed
+              return isSidebarCollapsed ? '66px' : 'calc(var(--sidebar-width, 80px) - 14px)';
+            }
+            // desktop
+            return isSidebarCollapsed ? '0px' : 'calc(var(--sidebar-width, 280px) - 14px)';
+          })(),
+          zIndex: 1500,
+          width: '28px',
+          height: '52px',
+          borderRadius: '0 12px 12px 0',
+          border: 'none',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(180deg, #00f5d4 0%, #00c2a8 100%)',
+          color: '#001a16',
+          transition: 'left 0.4s cubic-bezier(0.4,0,0.2,1), box-shadow 0.3s ease',
+          backdropFilter: 'blur(10px)',
+        }}
+      >
+        <motion.div
+          animate={{ rotate: (isSidebarCollapsed || (!isSidebarOpen && viewMode === 'mobile')) ? 180 : 0 }}
+          transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+        >
+          <PanelLeftClose size={15} />
+        </motion.div>
+      </motion.button>
+
+
       <main className="main-content" style={{ marginLeft: 0 }}>
         <Header
           activeTab={activeTab}
@@ -244,10 +295,20 @@ const Layout: React.FC = () => {
 
       <RightPanel
         activeTab={activeTab}
-        onModuleClick={(id) => setActiveModule(id)}
+        onModuleClick={(id) => { setActiveModule(id); if (viewMode === 'mobile') setIsRightPanelCollapsed(true); }}
         onOdooDiscussClick={() => setIsChatterOpen(true)}
         onGoogleChatClick={() => window.open('https://mail.google.com/chat', '_blank')}
         isCollapsed={isRightPanelCollapsed}
+        className={`${viewMode === 'mobile' && !isRightPanelCollapsed ? 'open-mobile' : ''}`}
+      />
+
+      {/* Drawer Overlay for Mobile/Tablet */}
+      <div
+        className={`drawer-overlay ${(isSidebarOpen || !isRightPanelCollapsed) && viewMode === 'mobile' ? 'open' : ''}`}
+        onClick={() => {
+          setIsSidebarOpen(false);
+          setIsRightPanelCollapsed(true);
+        }}
       />
 
       <motion.button

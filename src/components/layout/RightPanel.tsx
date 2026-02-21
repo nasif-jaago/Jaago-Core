@@ -18,6 +18,7 @@ interface RightPanelProps {
     onOdooDiscussClick?: () => void;
     onGoogleChatClick?: () => void;
     isCollapsed?: boolean;
+    className?: string;
 }
 
 const commonApps = [
@@ -323,7 +324,7 @@ const mockLogs = [
     { id: 5, event: 'Backup routine', status: 'Success', time: '3 hours ago', color: '#22c55e' },
 ];
 
-const RightPanel: React.FC<RightPanelProps> = ({ activeTab, onModuleClick, onOdooDiscussClick, onGoogleChatClick, isCollapsed }) => {
+const RightPanel: React.FC<RightPanelProps> = ({ activeTab, onModuleClick, onOdooDiscussClick, onGoogleChatClick, isCollapsed, className }) => {
     const [showLogs, setShowLogs] = React.useState(false);
     const { viewMode, cycleViewMode } = useTheme();
     const getDynamicModules = () => {
@@ -351,7 +352,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ activeTab, onModuleClick, onOdo
     const dynamicData = getDynamicModules();
 
     return (
-        <aside className={`right-panel ${isCollapsed ? 'collapsed' : ''}`}>
+        <aside className={`right-panel ${isCollapsed ? 'collapsed' : ''} ${className || ''}`}>
             {/* Common Apps Section - NOW FIRST */}
             <div style={{ marginBottom: '1.5rem' }}>
                 <h3 style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', opacity: 0.8 }}>

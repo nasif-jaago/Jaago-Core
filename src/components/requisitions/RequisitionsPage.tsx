@@ -9,11 +9,14 @@ import RequisitionFormPage from './RequisitionFormPage';
 import ApprovalRulesManager from './ApprovalRulesManager';
 import type { RequisitionRequest, RequisitionFilters } from '../../types/requisition';
 
+import { useTheme } from '../../context/ThemeContext';
+
 interface RequisitionsPageProps {
     onBack?: () => void;
 }
 
 const RequisitionsPage: React.FC<RequisitionsPageProps> = ({ onBack }) => {
+    const { viewMode } = useTheme();
     // View state
     const [view, setView] = useState<'list' | 'form' | 'admin'>('list');
     const [selectedId, setSelectedId] = useState<number | undefined>(undefined);
@@ -107,57 +110,102 @@ const RequisitionsPage: React.FC<RequisitionsPageProps> = ({ onBack }) => {
     return (
         <div className="fade-in">
             {/* Header Area */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+            <div style={{
+                display: 'flex',
+                flexDirection: viewMode === 'mobile' ? 'column' : 'row',
+                justifyContent: 'space-between',
+                alignItems: viewMode === 'mobile' ? 'flex-start' : 'center',
+                marginBottom: '2rem',
+                gap: '1.5rem'
+            }}>
                 <div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-main)', margin: 0, letterSpacing: '-0.5px' }}>
+                    <h1 style={{ fontSize: viewMode === 'mobile' ? '1.5rem' : '2rem', fontWeight: 900, color: 'var(--text-main)', margin: 0, letterSpacing: '-0.5px' }}>
                         Requisition Requests
                     </h1>
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px', fontWeight: 600 }}>
                         Manage and track multi-step purchase and service approvals
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{
+                    display: 'flex',
+                    gap: '10px',
+                    width: viewMode === 'mobile' ? '100%' : 'auto'
+                }}>
                     <button
                         onClick={() => setView('admin')}
                         className="btn-secondary"
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px' }}
+                        style={{
+                            flex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            padding: '10px 18px',
+                            fontSize: '0.85rem'
+                        }}
                     >
-                        <Shield size={18} /> Admin Rules
+                        <Shield size={18} /> <span className="hide-mobile">Admin Rules</span><span className="show-mobile">Rules</span>
                     </button>
                     <button
                         onClick={handleCreate}
                         className="btn-primary"
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', fontWeight: 800, background: 'var(--primary-gradient)', color: '#000' }}
+                        style={{
+                            flex: 1.5,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            padding: '10px 24px',
+                            fontWeight: 800,
+                            background: 'var(--primary-gradient)',
+                            color: '#000',
+                            fontSize: '0.85rem'
+                        }}
                     >
-                        <Plus size={20} /> NEW REQUISITION
+                        <Plus size={20} /> <span className="hide-mobile">NEW REQUISITION</span><span className="show-mobile">NEW</span>
                     </button>
                 </div>
             </div>
 
             {/* Filters Bar */}
-            <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <div className="card" style={{
+                padding: '1rem',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                flexDirection: viewMode === 'mobile' ? 'column' : 'row',
+                gap: '1rem',
+                alignItems: viewMode === 'mobile' ? 'stretch' : 'center'
+            }}>
                 <div style={{ flex: 1, position: 'relative' }}>
                     <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     <input
                         className="input-field"
-                        placeholder="Search by subject, PR number, or project..."
+                        placeholder="Search..."
                         style={{ width: '100%', paddingLeft: '40px' }}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{
+                    display: 'flex',
+                    gap: '4px',
+                    overflowX: 'auto',
+                    paddingBottom: viewMode === 'mobile' ? '8px' : '0',
+                    scrollbarWidth: 'none'
+                }}>
                     {['all', 'pending', 'approved', 'refused'].map(status => (
                         <button
                             key={status}
                             onClick={() => setFilters({ ...filters, status: status === 'all' ? undefined : status })}
                             className={`btn-secondary ${(filters.status === status || (!filters.status && status === 'all')) ? 'active' : ''}`}
                             style={{
-                                padding: '8px 16px',
-                                fontSize: '0.8rem',
+                                padding: '8px 12px',
+                                fontSize: '0.75rem',
                                 fontWeight: 700,
-                                background: (filters.status === status || (!filters.status && status === 'all')) ? 'var(--primary-glow)' : 'var(--input-bg)'
+                                flexShrink: 0,
+                                background: (filters.status === status || (!filters.status && status === 'all')) ? 'var(--primary-glow)' : 'var(--input-bg)',
+                                border: (filters.status === status || (!filters.status && status === 'all')) ? '1px solid var(--primary)' : '1px solid var(--border-glass)'
                             }}
                         >
                             {status.toUpperCase()}
@@ -190,42 +238,66 @@ const RequisitionsPage: React.FC<RequisitionsPageProps> = ({ onBack }) => {
                                     className="card-hover"
                                     onClick={() => handleEdit(req.id)}
                                     style={{
-                                        padding: '0.85rem 1.25rem',
+                                        padding: '1rem',
                                         display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '1.25rem',
+                                        flexDirection: viewMode === 'mobile' ? 'column' : 'row',
+                                        alignItems: viewMode === 'mobile' ? 'flex-start' : 'center',
+                                        gap: viewMode === 'mobile' ? '1rem' : '1.25rem',
                                         background: 'var(--card-bg)',
                                         border: '1px solid var(--border-glass)',
-                                        borderRadius: '12px',
-                                        cursor: 'pointer'
+                                        borderRadius: '16px',
+                                        cursor: 'pointer',
+                                        position: 'relative'
                                     }}
                                 >
-                                    {/* Status Icon */}
-                                    <div style={{
-                                        width: '40px', height: '40px', borderRadius: '10px',
-                                        background: status.bg, display: 'flex', alignItems: 'center',
-                                        justifyContent: 'center', color: status.color, flexShrink: 0
-                                    }}>
-                                        <StatusIcon size={20} />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
+                                        {/* Status Icon */}
+                                        <div style={{
+                                            width: '44px', height: '44px', borderRadius: '12px',
+                                            background: status.bg, display: 'flex', alignItems: 'center',
+                                            justifyContent: 'center', color: status.color, flexShrink: 0
+                                        }}>
+                                            <StatusIcon size={24} />
+                                        </div>
+
+                                        {/* Mobile Amount & Action */}
+                                        {viewMode === 'mobile' && (
+                                            <div style={{ flex: 1, textAlign: 'right' }}>
+                                                <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-main)' }}>
+                                                    {(() => {
+                                                        const companyId = Array.isArray(req.company_id) ? req.company_id[0] : req.company_id;
+                                                        const company = companies.find(c => c.id === companyId);
+                                                        const symbol = company?.currency_symbol || '$';
+                                                        return `${symbol} ${(req.x_studio_total_amount || 0).toLocaleString()}`;
+                                                    })()}
+                                                </div>
+                                                <div style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--text-muted)' }}>EST. TOTAL</div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Info */}
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary)', letterSpacing: '0.5px' }}>
+                                    <div style={{ flex: 1, width: '100%' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--primary)', letterSpacing: '0.5px', background: 'rgba(245, 197, 24, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
                                                 {req.name || 'DRAFT'}
                                             </span>
-                                            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--text-muted)' }} />
-                                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                            <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>
                                                 {Array.isArray(req.category_id) ? req.category_id[1] : ''}
                                             </span>
                                         </div>
-                                        <h3 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0, color: 'var(--text-main)', textTransform: 'uppercase' }}>
+                                        <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, color: 'var(--text-main)', textTransform: 'uppercase', lineHeight: '1.3' }}>
                                             {req.name || 'Untitled Requisition'}
                                         </h3>
-                                        <div style={{ display: 'flex', gap: '1.5rem', marginTop: '8px' }}>
+
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: viewMode === 'mobile' ? '1fr 1fr' : 'repeat(3, auto)',
+                                            gap: viewMode === 'mobile' ? '12px' : '1.5rem',
+                                            marginTop: '12px'
+                                        }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                <Briefcase size={14} /> {Array.isArray(req.x_studio_projects_name) ? req.x_studio_projects_name[1] : 'No Project'}
+                                                <Briefcase size={14} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{Array.isArray(req.x_studio_projects_name) ? req.x_studio_projects_name[1] : 'No Project'}</span>
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                                 <User size={14} /> {Array.isArray(req.request_owner_id) ? req.request_owner_id[1] : ''}
@@ -236,23 +308,25 @@ const RequisitionsPage: React.FC<RequisitionsPageProps> = ({ onBack }) => {
                                         </div>
                                     </div>
 
-                                    {/* Amount */}
-                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '1px' }}>EST. TOTAL</div>
-                                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-main)' }}>
-                                            {(() => {
-                                                const companyId = Array.isArray(req.company_id) ? req.company_id[0] : req.company_id;
-                                                const company = companies.find(c => c.id === companyId);
-                                                const symbol = company?.currency_symbol || '$';
-                                                return `${symbol} ${(req.x_studio_total_amount || 0).toLocaleString()}`;
-                                            })()}
-                                        </div>
-                                    </div>
-
-                                    {/* Action */}
-                                    <div style={{ color: 'var(--text-muted)' }}>
-                                        <ChevronRight size={20} />
-                                    </div>
+                                    {/* Desktop Amount & Action */}
+                                    {viewMode !== 'mobile' && (
+                                        <>
+                                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '1px' }}>EST. TOTAL</div>
+                                                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-main)' }}>
+                                                    {(() => {
+                                                        const companyId = Array.isArray(req.company_id) ? req.company_id[0] : req.company_id;
+                                                        const company = companies.find(c => c.id === companyId);
+                                                        const symbol = company?.currency_symbol || '$';
+                                                        return `${symbol} ${(req.x_studio_total_amount || 0).toLocaleString()}`;
+                                                    })()}
+                                                </div>
+                                            </div>
+                                            <div style={{ color: 'var(--text-muted)' }}>
+                                                <ChevronRight size={20} />
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             );
                         })

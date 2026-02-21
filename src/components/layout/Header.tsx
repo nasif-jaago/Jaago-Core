@@ -212,9 +212,6 @@ const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, onToggleSideba
                         flexShrink: 0
                     }}
                 >
-                    <div className="hide-mobile">
-                        <Logo3D />
-                    </div>
                     {viewMode === 'mobile' && (
                         <div style={{ transform: 'scale(0.7)', marginLeft: '-8px' }}>
                             <Logo3D />

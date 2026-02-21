@@ -438,6 +438,52 @@ body.mode-c .btn-primary {
   flex-direction: column;
 }
 
+/* ── Neon Sidebar Toggle Button ── */
+#sidebar-toggle-btn {
+  animation: neon-pulse-sidebar 2.8s ease-in-out infinite;
+}
+
+#sidebar-toggle-btn:hover {
+  box-shadow:
+    0 0 20px rgba(0, 245, 212, 0.95),
+    6px 0 28px rgba(0, 245, 212, 0.6) !important;
+  animation: none;
+}
+
+@keyframes neon-pulse-sidebar {
+
+  0%,
+  100% {
+    box-shadow:
+      0 0 8px rgba(0, 245, 212, 0.6),
+      4px 0 14px rgba(0, 245, 212, 0.3);
+  }
+
+  50% {
+    box-shadow:
+      0 0 16px rgba(0, 245, 212, 0.9),
+      6px 0 24px rgba(0, 245, 212, 0.55);
+  }
+}
+
+/* On mobile the button sits at exact left:0 when sidebar is closed, 
+   and slides right when the drawer opens */
+@media (max-width: 768px) {
+  #sidebar-toggle-btn {
+    top: 72px !important;
+    width: 26px !important;
+    height: 48px !important;
+  }
+}
+
+/* On tablet: sidebar is icon-only (80px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  #sidebar-toggle-btn {
+    top: 76px !important;
+  }
+}
+
+
 .main-content {
   flex: 1;
   padding: 1.5rem;
@@ -615,10 +661,34 @@ body.view-mobile .right-panel:not(.collapsed) {
     --page-padding: 1rem;
     --container-gap: 1rem;
     --sidebar-width: 0px;
-    --right-panel-width: 0px;
-  }
 
-  .app-container {
+    /* Right Panel Drawer System for Mobile */
+    .right-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 320px;
+      background: var(--bg-surface);
+      backdrop-filter: blur(40px) saturate(180%);
+      border-left: 1px solid var(--border-glass);
+      z-index: 2000;
+      transform: translateX(100%);
+      transition: transform 0.4s var(--easing);
+      display: flex;
+      flex-direction: column;
+      padding: 1.5rem !important;
+    }
+
+    .right-panel.open-mobile {
+      transform: translateX(0);
+      box-shadow: -20px 0 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .right-panel.collapsed {
+      transform: translateX(100%);
+    }
+
     flex-direction: column;
     overflow-x: hidden;
   }

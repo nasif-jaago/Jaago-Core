@@ -14,11 +14,14 @@ import { DashboardService } from '../../api/DashboardService';
 import type { DashboardFilters } from '../../api/DashboardService';
 import { fetchCompanies } from '../../api/odoo';
 
+import { useTheme } from '../../context/ThemeContext';
+
 export interface StrategicOverviewProps {
     onModuleClick?: (module: string) => void;
 }
 
 const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) => {
+    const { viewMode } = useTheme();
     // --- State ---
     const [loading, setLoading] = useState(true);
     const [companies, setCompanies] = useState<any[]>([]);
@@ -675,42 +678,72 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
 
             {/* 4. MODALS & OVERLAYS */}
             {isInvoiceDetailsOpen && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
-                    <div className="glass-panel" style={{ width: '100%', maxWidth: '900px', padding: '32px', border: '1px solid var(--primary)', maxHeight: '80vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                <div style={{
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.85)',
+                    backdropFilter: 'blur(10px)',
+                    zIndex: 10000,
+                    display: 'flex',
+                    alignItems: viewMode === 'mobile' ? 'flex-start' : 'center',
+                    justifyContent: 'center',
+                    padding: viewMode === 'mobile' ? '0' : '40px'
+                }}>
+                    <div className="glass-panel" style={{
+                        width: '100%',
+                        maxWidth: viewMode === 'mobile' ? '100%' : '900px',
+                        height: viewMode === 'mobile' ? '100%' : 'auto',
+                        padding: viewMode === 'mobile' ? '20px' : '32px',
+                        border: viewMode === 'mobile' ? 'none' : '1px solid var(--primary)',
+                        maxHeight: viewMode === 'mobile' ? '100%' : '90vh',
+                        overflowY: 'auto',
+                        borderRadius: viewMode === 'mobile' ? '0' : '24px'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            marginBottom: '32px',
+                            gap: '16px'
+                        }}>
                             <div>
-                                <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>INVOICE REVENUE ANALYTICS</h1>
-                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Detailed breakdown of corporate & sponsor invoices from Odoo</p>
+                                <h1 style={{ fontSize: viewMode === 'mobile' ? '1.2rem' : '1.5rem', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>INVOICE ANALYTICS</h1>
+                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Odoo synchronization data</p>
                             </div>
-                            <button onClick={() => setIsInvoiceDetailsOpen(false)} className="btn-icon" style={{ background: 'var(--input-bg)', border: '1px solid var(--border-glass)' }}>
+                            <button onClick={() => setIsInvoiceDetailsOpen(false)} className="btn-icon" style={{ background: 'var(--input-bg)', border: '1px solid var(--border-glass)', flexShrink: 0 }}>
                                 <Activity size={20} />
                             </button>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '32px' }}>
-                            <div style={{ padding: '20px', borderRadius: '16px', background: 'rgba(56, 189, 248, 0.05)', border: '1px solid rgba(56, 189, 248, 0.1)' }}>
-                                <p style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Billed</p>
-                                <p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--primary)', marginTop: '4px' }}>{new Intl.NumberFormat('en-US', { style: 'currency', currency: dashboardData?.kpis.currency || 'BDT', maximumFractionDigits: 0 }).format(dashboardData?.kpis.totalInvoiceAmount || 0)}</p>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: viewMode === 'mobile' ? '1fr' : '1fr 1fr 1fr',
+                            gap: '12px',
+                            marginBottom: '32px'
+                        }}>
+                            <div style={{ padding: '16px', borderRadius: '16px', background: 'rgba(56, 189, 248, 0.05)', border: '1px solid rgba(56, 189, 248, 0.1)' }}>
+                                <p style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Billed</p>
+                                <p style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--primary)', marginTop: '4px' }}>{new Intl.NumberFormat('en-US', { style: 'currency', currency: dashboardData?.kpis.currency || 'BDT', maximumFractionDigits: 0 }).format(dashboardData?.kpis.totalInvoiceAmount || 0)}</p>
                             </div>
-                            <div style={{ padding: '20px', borderRadius: '16px', background: 'rgba(52, 211, 153, 0.05)', border: '1px solid rgba(52, 211, 153, 0.1)' }}>
-                                <p style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Invoice Count</p>
-                                <p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--accent-green)', marginTop: '4px' }}>{dashboardData?.kpis.totalInvoiceCount}</p>
+                            <div style={{ padding: '16px', borderRadius: '16px', background: 'rgba(52, 211, 153, 0.05)', border: '1px solid rgba(52, 211, 153, 0.1)' }}>
+                                <p style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Invoice Count</p>
+                                <p style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--accent-green)', marginTop: '4px' }}>{dashboardData?.kpis.totalInvoiceCount}</p>
                             </div>
-                            <div style={{ padding: '20px', borderRadius: '16px', background: 'rgba(251, 113, 133, 0.05)', border: '1px solid rgba(251, 113, 133, 0.1)' }}>
-                                <p style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Avg Revenue / Inv</p>
-                                <p style={{ fontSize: '1.4rem', fontWeight: 900, color: '#f87171', marginTop: '4px' }}>{new Intl.NumberFormat('en-US', { style: 'currency', currency: dashboardData?.kpis.currency || 'BDT', maximumFractionDigits: 0 }).format((dashboardData?.kpis.totalInvoiceAmount || 0) / (dashboardData?.kpis.totalInvoiceCount || 1))}</p>
+                            <div style={{ padding: '16px', borderRadius: '16px', background: 'rgba(251, 113, 133, 0.05)', border: '1px solid rgba(251, 113, 133, 0.1)' }}>
+                                <p style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Avg / Inv</p>
+                                <p style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f87171', marginTop: '4px' }}>{new Intl.NumberFormat('en-US', { style: 'currency', currency: dashboardData?.kpis.currency || 'BDT', maximumFractionDigits: 0 }).format((dashboardData?.kpis.totalInvoiceAmount || 0) / (dashboardData?.kpis.totalInvoiceCount || 1))}</p>
                             </div>
                         </div>
 
-                        <div style={{ background: 'var(--input-bg)', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border-glass)' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <div style={{ background: 'var(--input-bg)', borderRadius: '16px', overflowX: 'auto', border: '1px solid var(--border-glass)' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: viewMode === 'mobile' ? '600px' : 'auto' }}>
                                 <thead style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-glass)' }}>
                                     <tr>
-                                        <th style={{ padding: '16px', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)' }}>INVOICE REF</th>
-                                        <th style={{ padding: '16px', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)' }}>PARTNER</th>
-                                        <th style={{ padding: '16px', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)' }}>ENTITY / COMPANY</th>
-                                        <th style={{ padding: '16px', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)' }}>AMOUNT ({dashboardData?.kpis.currency || 'BDT'})</th>
-                                        <th style={{ padding: '16px', fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)' }}>STATUS</th>
+                                        <th style={{ padding: '12px 16px', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>REF</th>
+                                        <th style={{ padding: '12px 16px', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>PARTNER</th>
+                                        <th style={{ padding: '12px 16px', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>ENTITY</th>
+                                        <th style={{ padding: '12px 16px', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>AMOUNT</th>
+                                        <th style={{ padding: '12px 16px', fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>STATUS</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -725,12 +758,12 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
                                             status: 'posted'
                                         }))).map((inv: any, i: number) => (
                                             <tr key={i} style={{ borderBottom: '1px solid var(--border-glass)' }}>
-                                                <td style={{ padding: '16px', fontSize: '0.8rem', fontWeight: 700 }}>{inv.ref}</td>
-                                                <td style={{ padding: '16px', fontSize: '0.8rem' }}>{inv.partner}</td>
-                                                <td style={{ padding: '16px', fontSize: '0.8rem' }}>{inv.company}</td>
-                                                <td style={{ padding: '16px', fontSize: '0.8rem', fontWeight: 800 }}>{new Intl.NumberFormat('en-US', { style: 'currency', currency: dashboardData?.kpis.currency || 'BDT', maximumFractionDigits: 0 }).format(inv.amount)}</td>
-                                                <td style={{ padding: '16px' }}>
-                                                    <span style={{ fontSize: '0.65rem', padding: '4px 8px', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontWeight: 800 }}>{inv.status?.toUpperCase() || 'POSTED'}</span>
+                                                <td style={{ padding: '12px 16px', fontSize: '0.75rem', fontWeight: 700 }}>{inv.ref}</td>
+                                                <td style={{ padding: '12px 16px', fontSize: '0.75rem' }}>{inv.partner}</td>
+                                                <td style={{ padding: '12px 16px', fontSize: '0.75rem' }}>{inv.company}</td>
+                                                <td style={{ padding: '12px 16px', fontSize: '0.75rem', fontWeight: 800 }}>{new Intl.NumberFormat('en-US', { style: 'currency', currency: dashboardData?.kpis.currency || 'BDT', maximumFractionDigits: 0 }).format(inv.amount)}</td>
+                                                <td style={{ padding: '12px 16px' }}>
+                                                    <span style={{ fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontWeight: 800 }}>{inv.status?.toUpperCase() || 'POSTED'}</span>
                                                 </td>
                                             </tr>
                                         ))}
