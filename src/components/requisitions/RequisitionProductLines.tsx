@@ -86,8 +86,7 @@ const RequisitionProductLines: React.FC<RequisitionProductLinesProps> = ({ lines
             product_uom_id: false,
             quantity: 1,
             x_studio_per_unit_price: 0,
-            x_studio_estimated_price: 0,
-            sequence: lines.length * 10 + 10
+            x_studio_estimated_price: 0
         };
         onChange([...lines, newLine]);
     };
@@ -170,7 +169,7 @@ const RequisitionProductLines: React.FC<RequisitionProductLinesProps> = ({ lines
                             </div>
 
                             {showHeaderResults && (searchTerm.length > 0 || productFor) && (
-                                <div className="non-glass-dropdown" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000, maxHeight: '300px', overflowY: 'auto', marginTop: '10px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-glass)' }}>
+                                <div className="non-glass-dropdown" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000, maxHeight: '350px', overflowY: 'auto', marginTop: '10px' }}>
                                     {loading ? (
                                         <div style={{ padding: '20px', textAlign: 'center' }}><div className="spinner-small" style={{ margin: '0 auto 10px' }}></div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Searching Inventory...</span></div>
                                     ) : products.length > 0 ? (
@@ -192,10 +191,9 @@ const RequisitionProductLines: React.FC<RequisitionProductLinesProps> = ({ lines
                                                     setShowHeaderResults(false);
                                                 }}
                                                 className="dropdown-item"
-                                                style={{ padding: '10px 15px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
                                             >
-                                                <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-main)' }}>{p.display_name || p.name}</div>
-                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                                                <div className="title" style={{ fontSize: '0.9rem' }}>{p.display_name || p.name}</div>
+                                                <div className="subtitle" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
                                                     <span>SKU: {p.default_code || 'N/A'}</span>
                                                     <span style={{ color: 'var(--primary)', fontWeight: 800 }}>{currency} {(p.list_price || 0).toLocaleString()}</span>
                                                 </div>
@@ -294,14 +292,14 @@ const RequisitionProductLines: React.FC<RequisitionProductLinesProps> = ({ lines
                                                     style={{ width: '100%', padding: '6px 12px', fontSize: '0.85rem', fontWeight: 700 }}
                                                 />
                                                 {showProdResults === index && (rowSearchTerm || productFor) && (
-                                                    <div className="non-glass-dropdown" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000, maxHeight: '200px', overflowY: 'auto', marginTop: '6px' }}>
+                                                    <div className="non-glass-dropdown" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000, maxHeight: '250px', overflowY: 'auto', marginTop: '6px' }}>
                                                         {loading ? (
                                                             <div style={{ padding: '15px', textAlign: 'center' }}><div className="spinner-small" style={{ margin: '0 auto' }}></div></div>
                                                         ) : products.length > 0 ? (
                                                             products.map(p => (
-                                                                <div key={p.id} onClick={() => { updateLine(index, 'product_id', [p.id, p.name]); setShowProdResults(null); setRowSearchTerm(''); }} className="dropdown-item" style={{ padding: '10px 12px' }}>
-                                                                    <div style={{ fontWeight: 800, fontSize: '0.8rem' }}>{p.display_name || p.name}</div>
-                                                                    <div style={{ fontSize: '0.65rem', opacity: 0.6, display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
+                                                                <div key={p.id} onClick={() => { updateLine(index, 'product_id', [p.id, p.name]); setShowProdResults(null); setRowSearchTerm(''); }} className="dropdown-item">
+                                                                    <div className="title" style={{ fontSize: '0.85rem' }}>{p.display_name || p.name}</div>
+                                                                    <div className="subtitle" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
                                                                         <span>SKU: {p.default_code || 'N/A'}</span>
                                                                         <span style={{ color: 'var(--primary)', fontWeight: 800 }}>{currency} {p.list_price || 0}</span>
                                                                     </div>

@@ -350,8 +350,7 @@ const RequisitionFormPage: React.FC<RequisitionFormPageProps> = ({ requisitionId
                     product_uom_id: extractId(line.product_uom_id),
                     quantity: parseFloat(line.quantity as any) || 0,
                     x_studio_per_unit_price: parseFloat(line.x_studio_per_unit_price as any) || 0,
-                    x_studio_estimated_price: parseFloat(line.x_studio_estimated_price as any) || 0,
-                    sequence: line.sequence || 0
+                    x_studio_estimated_price: parseFloat(line.x_studio_estimated_price as any) || 0
                 };
                 if (line.id) {
                     return [1, line.id, lineValues]; // Update existing
@@ -497,7 +496,7 @@ const RequisitionFormPage: React.FC<RequisitionFormPageProps> = ({ requisitionId
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }} ref={projectRef}>
                                 <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>PROJECT</label>
                                 {isEditing ? <input className="input-field" value={projectSearch} onChange={e => handleProjectSearch(e.target.value)} onFocus={() => handleProjectSearch('')} placeholder="Search project..." style={{ fontSize: '0.85rem' }} /> : <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{Array.isArray(formData.x_studio_projects_name) ? formData.x_studio_projects_name[1] : (typeof formData.x_studio_projects_name === 'string' ? formData.x_studio_projects_name : '--')}</div>}
-                                {showProjectResults && projects.length > 0 && <div className="non-glass-dropdown" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>{projects.map(p => <div key={p.id} onClick={() => selectProject(p)} className="dropdown-item" style={{ padding: '10px', fontSize: '0.8rem' }}>{p.display_name || p.name}</div>)}</div>}
+                                {showProjectResults && projects.length > 0 && <div className="non-glass-dropdown" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000, maxHeight: '250px', overflowY: 'auto' }}>{projects.map(p => <div key={p.id} onClick={() => selectProject(p)} className="dropdown-item"><div className="title" style={{ fontSize: '0.85rem' }}>{p.display_name || p.name}</div></div>)}</div>}
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>ACTIVITY CODE</label>
@@ -511,15 +510,16 @@ const RequisitionFormPage: React.FC<RequisitionFormPageProps> = ({ requisitionId
                         <div id="request-owner-container" style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }} ref={ownerRef}>
                             <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>REQUEST OWNER</label>
                             {isEditing ? <input className="input-field" value={ownerSearch} onChange={e => handleOwnerSearch(e.target.value)} onFocus={() => handleOwnerSearch('')} placeholder="Search owner..." style={{ fontSize: '0.85rem' }} /> : <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{Array.isArray(formData.request_owner_id) ? formData.request_owner_id[1] : '--'}</div>}
-                            {showOwnerResults && employees.length > 0 && <div className="non-glass-dropdown" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>{employees.map(emp => <div key={emp.id} onClick={() => selectOwner(emp)} className="dropdown-item" style={{ padding: '10px', fontSize: '0.8rem' }}>{emp.name}</div>)}</div>}
+                            {showOwnerResults && employees.length > 0 && <div className="non-glass-dropdown" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000, maxHeight: '250px', overflowY: 'auto' }}>{employees.map(emp => <div key={emp.id} onClick={() => selectOwner(emp)} className="dropdown-item"><div className="title" style={{ fontSize: '0.85rem' }}>{emp.name}</div><div className="subtitle">{Array.isArray(emp.department_id) ? emp.department_id[1] : 'No Department'}</div></div>)}</div>}
                         </div>
                     </div>
 
                     <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', borderRadius: '12px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary)' }}><ShieldCheck size={16} /><h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800 }}>REQUISITION DETAILS</h3></div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>SUBJECT / PURPOSE</label>
-                            {isEditing ? <input className="input-field" value={formData.name || ''} onChange={e => handleInputChange('name', e.target.value)} placeholder="Purpose..." style={{ fontWeight: 800, fontSize: '0.95rem' }} /> : <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)' }}>{formData.name || '--'}</div>}
+                            <label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>SUBJECT</label>
+                            {/* Maps to Odoo technical field: name */}
+                            {isEditing ? <input className="input-field" value={formData.name || ''} onChange={e => handleInputChange('name', e.target.value)} placeholder="Enter Requisition Subject..." style={{ fontWeight: 800, fontSize: '0.95rem' }} /> : <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)' }}>{formData.name || '--'}</div>}
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}><label style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)' }}>TYPE</label>{isEditing ? <select className="input-field" value={Array.isArray(formData.category_id) ? formData.category_id[0] : (formData.category_id || '')} onChange={e => handleInputChange('category_id', parseInt(e.target.value))} style={{ fontSize: '0.85rem' }}><option value="">Select...</option>{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select> : <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{Array.isArray(formData.category_id) ? formData.category_id[1] : '--'}</div>}</div>

@@ -220,8 +220,8 @@ const RequisitionsPage: React.FC<RequisitionsPageProps> = ({ onBack }) => {
                                                 {Array.isArray(req.category_id) ? req.category_id[1] : ''}
                                             </span>
                                         </div>
-                                        <h3 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
-                                            {req.reason && req.reason !== req.name ? req.reason : (req.name || 'Untitled Requisition')}
+                                        <h3 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0, color: 'var(--text-main)', textTransform: 'uppercase' }}>
+                                            {req.name || 'Untitled Requisition'}
                                         </h3>
                                         <div style={{ display: 'flex', gap: '1.5rem', marginTop: '8px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>

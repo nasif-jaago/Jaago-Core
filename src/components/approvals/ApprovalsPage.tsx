@@ -233,7 +233,7 @@ const ApprovalsPage: React.FC<ApprovalsPageProps> = ({ onBack }) => {
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 1, borderBottom: '1px solid var(--border-glass)' }}>
                                 <tr style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                    <th style={{ padding: '16px 24px', textAlign: 'left' }}>Request</th>
+                                    <th style={{ padding: '16px 24px', textAlign: 'left' }}>Subject / Request</th>
                                     <th style={{ padding: '16px', textAlign: 'left' }}>Category</th>
                                     <th style={{ padding: '16px', textAlign: 'left' }}>Requested By</th>
                                     <th style={{ padding: '16px', textAlign: 'left' }}>Date</th>

@@ -256,7 +256,7 @@ export const fetchProducts = async (options: { searchTerm?: string; productFor?:
             domain.push('|', ['name', 'ilike', options.searchTerm], ['default_code', 'ilike', options.searchTerm]);
         }
 
-        const result = await odooCall('product.template', 'search_read', [domain], {
+        const result = await odooCall('product.product', 'search_read', [domain], {
             fields: ['name', 'display_name', 'default_code', 'list_price', 'standard_price', 'uom_id', 'categ_id'],
             limit
         });
@@ -412,7 +412,7 @@ export const fetchCurrentUserProfile = async (): Promise<ApiResponse<Employee>> 
 export const fetchProductLines = async (requisitionId: number): Promise<ApiResponse<RequisitionLine[]>> => {
     try {
         const result = await odooCall('approval.product.line', 'search_read', [[['approval_request_id', '=', requisitionId]]], {
-            fields: ['product_id', 'x_studio_product_description', 'product_uom_id', 'quantity', 'x_studio_per_unit_price', 'x_studio_estimated_price', 'sequence']
+            fields: ['product_id', 'x_studio_product_description', 'product_uom_id', 'quantity', 'x_studio_per_unit_price', 'x_studio_estimated_price']
         });
         return { success: true, data: result };
     } catch (error: any) {

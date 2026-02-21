@@ -201,12 +201,13 @@ const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                                 width: 'min(320px, 95vw)',
                                 maxHeight: '500px',
                                 overflowY: 'auto',
-                                background: 'var(--bg-surface)',
-                                border: '1px solid var(--border-glass)',
+                                background: 'rgba(10, 15, 25, 0.95)',
+                                border: '1px solid rgba(255, 255, 255, 0.12)',
                                 borderRadius: '16px',
-                                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
+                                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
                                 zIndex: 1000,
-                                padding: '12px'
+                                padding: '12px',
+                                backdropFilter: 'blur(30px) saturate(180%)'
                             }}>
                                 {/* Dashboard Section */}
                                 <div style={{ marginBottom: '16px' }}>
@@ -413,25 +414,25 @@ const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
 
                             {/* User Dropdown Menu */}
                             <div
-                                className="glass"
                                 style={{
                                     position: 'absolute',
                                     top: 'calc(100% + 10px)',
                                     right: 0,
                                     width: '280px',
-                                    background: 'var(--bg-surface)',
-                                    borderRadius: '16px',
-                                    border: '1px solid var(--border-glass)',
-                                    boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+                                    background: 'rgba(10, 15, 25, 0.95)',
+                                    borderRadius: '20px',
+                                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                                    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
                                     zIndex: 999,
-                                    overflow: 'hidden'
+                                    overflow: 'hidden',
+                                    backdropFilter: 'blur(30px) saturate(180%)'
                                 }}
                             >
                                 {/* User Info Section */}
                                 <div style={{
-                                    padding: '20px',
-                                    background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(56, 189, 248, 0.05))',
-                                    borderBottom: '1px solid var(--border-glass)'
+                                    padding: '24px 20px',
+                                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.03), transparent)',
+                                    borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
                                 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                                         <div style={{

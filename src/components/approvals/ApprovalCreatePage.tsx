@@ -65,7 +65,7 @@ const ApprovalCreatePage: React.FC<ApprovalCreatePageProps> = ({ categories, fie
         const newErrors: Record<string, string> = {};
 
         if (!formData.name || formData.name.trim() === '') {
-            newErrors.name = 'Request name is required';
+            newErrors.name = 'Subject is required';
         }
         if (!formData.category_id) {
             newErrors.category_id = 'Category is required';
@@ -187,14 +187,15 @@ const ApprovalCreatePage: React.FC<ApprovalCreatePageProps> = ({ categories, fie
                                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
                                         <div>
                                             <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-dim)', display: 'block', marginBottom: '8px' }}>
-                                                Request Name <span style={{ color: '#ef4444' }}>*</span>
+                                                Subject <span style={{ color: '#ef4444' }}>*</span>
                                             </label>
+                                            {/* Maps to Odoo technical field: name */}
                                             <input
                                                 type="text"
                                                 className="input-field"
                                                 value={formData.name}
                                                 onChange={(e) => updateField('name', e.target.value)}
-                                                placeholder="e.g., Annual Leave Request, Budget Approval"
+                                                placeholder="Enter the subject of your request..."
                                                 style={{ width: '100%', fontSize: '1rem', padding: '12px' }}
                                             />
                                             {errors.name && <p style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '6px' }}>{errors.name}</p>}
