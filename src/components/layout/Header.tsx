@@ -112,12 +112,13 @@ const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
             position: 'sticky',
             top: 0,
             zIndex: 100,
-            padding: '0 2rem',
+            padding: '0 var(--header-padding, 2rem)',
             height: '70px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderBottom: '1px solid var(--glass-border)'
+            borderBottom: '1px solid var(--glass-border)',
+            transition: 'padding 0.3s ease'
         }}>
             <div
                 onClick={() => setActiveTab('Dashboard')}
@@ -127,37 +128,54 @@ const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                     gap: '12px',
                     cursor: 'pointer',
                     userSelect: 'none',
-                    transition: 'opacity 0.2s'
+                    transition: 'opacity 0.2s',
+                    flexShrink: 0
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
             >
-                <Logo3D />
+                <div className="hide-mobile">
+                    <Logo3D />
+                </div>
+                <div className="show-mobile-only" style={{ transform: 'scale(0.8)', marginLeft: '-10px' }}>
+                    <Logo3D />
+                </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(0.5rem, 2vw, 1.5rem)', flex: 1, justifyContent: 'flex-end' }}>
                 {/* Navigation Dropdown */}
                 <div style={{ position: 'relative' }}>
                     <button
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        className="responsive-nav-btn"
                         style={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: '8px',
-                            padding: '8px 16px',
+                            padding: '8px 12px',
                             background: 'var(--input-bg)',
                             border: '1px solid var(--border-glass)',
                             borderRadius: '12px',
                             color: 'var(--text-main)',
                             cursor: 'pointer',
-                            fontSize: '0.9rem',
+                            fontSize: 'max(0.75rem, 0.9vw)',
                             fontWeight: 600,
-                            transition: 'var(--transition)'
+                            transition: 'var(--transition)',
+                            maxWidth: '180px'
                         }}
                     >
-                        <Menu size={18} />
-                        <span>{currentNavItem.label}</span>
-                        <ChevronDown size={16} style={{ transform: isMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
+                        <Menu size={18} style={{ flexShrink: 0 }} />
+                        <span style={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            display: window.innerWidth < 480 ? 'none' : 'block'
+                        }}>
+                            {window.innerWidth < 640 ? currentNavItem.label.substring(0, 10) + (currentNavItem.label.length > 10 ? '...' : '') : currentNavItem.label}
+                        </span>
+                        <ChevronDown size={16} style={{
+                            transform: isMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                            transition: 'transform 0.3s',
+                            flexShrink: 0
+                        }} />
                     </button>
 
                     {isMenuOpen && (
@@ -180,7 +198,7 @@ const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                                 position: 'absolute',
                                 top: 'calc(100% + 8px)',
                                 right: 0,
-                                width: '320px',
+                                width: 'min(320px, 95vw)',
                                 maxHeight: '500px',
                                 overflowY: 'auto',
                                 background: 'var(--bg-surface)',
@@ -288,8 +306,8 @@ const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                     )}
                 </div>
 
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ position: 'relative' }}>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 'clamp(8px, 1.5vw, 12px)' }}>
+                    <div style={{ position: 'relative' }} className="hide-mobile">
                         <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                         <input
                             type="text"
@@ -301,7 +319,7 @@ const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                                 border: '1px solid var(--border-glass)',
                                 color: 'var(--text-main)',
                                 fontSize: '0.85rem',
-                                width: '160px',
+                                width: 'min(160px, 30vw)',
                                 background: 'rgba(255,255,255,0.05)',
                                 outline: 'none'
                             }}
@@ -318,8 +336,8 @@ const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                             background: 'var(--primary-gradient)',
                             border: 'none',
                             borderRadius: '10px',
-                            width: '32px',
-                            height: '32px',
+                            width: '36px',
+                            height: '36px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -328,18 +346,19 @@ const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                             boxShadow: '0 3px 10px var(--primary-glow)',
                             transition: 'all 0.2s ease',
                             position: 'relative',
-                            overflow: 'hidden'
+                            overflow: 'hidden',
+                            flexShrink: 0
                         }}
                     >
-                        {theme === 'dark' && <Sparkles size={16} key="dark" />}
-                        {theme === 'mode-b' && <Palette size={16} key="mode-b" />}
-                        {theme === 'mode-c' && <Settings size={16} key="mode-c" />}
+                        {theme === 'dark' && <Sparkles size={18} key="dark" />}
+                        {theme === 'mode-b' && <Palette size={18} key="mode-b" />}
+                        {theme === 'mode-c' && <Settings size={18} key="mode-c" />}
                     </motion.button>
                 </div>
 
-                <button style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', position: 'relative' }}>
+                <button className="hide-mobile" style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', position: 'relative', padding: '8px' }}>
                     <Bell size={20} />
-                    <span style={{ position: 'absolute', top: '-2px', right: '-2px', width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%', border: '2px solid var(--bg-surface)' }} />
+                    <span style={{ position: 'absolute', top: '4px', right: '4px', width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%', border: '2px solid var(--bg-surface)' }} />
                 </button>
 
                 {/* User Profile Dropdown */}

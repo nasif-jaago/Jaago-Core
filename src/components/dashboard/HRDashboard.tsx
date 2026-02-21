@@ -772,7 +772,7 @@ const HRDashboard: React.FC = () => {
             {activeTab === 'Overview' && (
                 <>
                     {/* Summary Cards */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', gap: '20px' }}>
                         {[
                             { key: 'total', label: 'Total Employee', val: stats.totalEmployees, icon: Users, bg: 'rgba(245, 197, 24, 0.05)', color: 'var(--primary)' },
                             { key: 'present', label: 'Present Today', val: stats.presentToday, icon: CheckCircle2, bg: 'rgba(34, 197, 94, 0.05)', color: '#22c55e' },
@@ -800,7 +800,7 @@ const HRDashboard: React.FC = () => {
                     </div>
 
                     {/* Event Summary Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '20px' }}>
                         {/* Birthdays Summary */}
                         <div className="glass-panel" style={{ padding: '24px', borderLeft: '4px solid #f472b6' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -875,7 +875,7 @@ const HRDashboard: React.FC = () => {
                     </div>
 
                     {/* Main Analytics Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '20px' }}>
                         {/* Gender Distribution (Replaces Recruitment Consistency) */}
                         <div className="glass-panel" style={{ padding: '32px', display: 'flex', flexDirection: 'column' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px', alignItems: 'center' }}>
@@ -977,7 +977,7 @@ const HRDashboard: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', gap: '24px' }}>
                                 {/* Top 5 On-Time */}
                                 <div>
                                     <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#22c55e', textTransform: 'uppercase', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1034,7 +1034,7 @@ const HRDashboard: React.FC = () => {
                     </div>
 
                     {/* Public Holiday Calendar & Payroll Summary */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))', gap: '20px' }}>
                         {/* Public Holiday Calendar */}
                         <div className="glass-panel" style={{ padding: '32px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px', alignItems: 'center' }}>
@@ -1089,7 +1089,7 @@ const HRDashboard: React.FC = () => {
                         </div>
 
                         {/* Payroll Snapshot */}
-                        <div className="card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+                        <div className="card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', minWidth: 'min(100%, 350px)' }}>
                             <div style={{ position: 'relative', width: '160px', height: '160px', marginBottom: '1.5rem' }}>
                                 <svg width="160" height="160" viewBox="0 0 160 160">
                                     <circle cx="80" cy="80" r="70" fill="none" stroke="var(--border)" strokeWidth="15" />
@@ -1112,7 +1112,7 @@ const HRDashboard: React.FC = () => {
             )}
 
             {activeTab === 'Lifecycle Events' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '20px' }}>
 
                     {/* Birthdays Section */}
                     <div className="glass-panel" style={{ padding: '32px', minHeight: '600px', display: 'flex', flexDirection: 'column' }}>
@@ -1311,7 +1311,7 @@ const HRDashboard: React.FC = () => {
 
                                 {/* Report Data Summary (If any) */}
                                 {reportData.length > 0 && (
-                                    <div style={{ marginBottom: '2rem', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+                                    <div style={{ marginBottom: '2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                                         <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                                             <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800 }}>TOTAL RECORDS</p>
                                             <p style={{ fontSize: '1.4rem', fontWeight: 900 }}>{reportData.length}</p>
@@ -1393,7 +1393,7 @@ const HRDashboard: React.FC = () => {
                             <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>Attendance Performance Analysis</p>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                             <div style={{ background: 'var(--surface)', padding: '16px', borderRadius: '16px', border: '1px solid var(--border)' }}>
                                 <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>Total Presence</p>
                                 <p style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-main)' }}>{showAttendanceDetails.employee.totalCount} Days</p>

@@ -227,10 +227,11 @@ const Layout: React.FC = () => {
         onClick={() => setIsRightPanelCollapsed(!isRightPanelCollapsed)}
         whileHover={{ scale: 1.05, x: isRightPanelCollapsed ? -2 : 2 }}
         whileTap={{ scale: 0.98 }}
+        className={isRightPanelCollapsed ? "hide-mobile" : ""}
         style={{
           position: 'fixed',
           top: '120px',
-          right: isRightPanelCollapsed ? '0px' : '280px',
+          right: isRightPanelCollapsed ? '0px' : 'var(--right-panel-width, 320px)',
           width: '24px',
           height: '48px',
           borderRadius: isRightPanelCollapsed ? '8px 0 0 8px' : '0 8px 8px 0',

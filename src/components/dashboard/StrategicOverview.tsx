@@ -368,7 +368,7 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
             </header>
 
             {/* 2. EXECUTIVE SNAPSHOT (Top Row) */}
-            <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '12px' }}>
                 <SnapshotCard
                     label="Running Projects"
                     value={(dashboardData?.kpis?.totalProgrammes || 48).toLocaleString()}
@@ -414,7 +414,7 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
             </section>
 
             {/* 2.5 ANALYTICS DASHBOARD - COMPACT GRID */}
-            <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '12px' }}>
+            <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '12px' }}>
                 {/* Chart 1: Revenue Trend - Line Chart */}
                 <div className="glass-panel" style={{ padding: '16px' }}>
                     <p style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '12px', textTransform: 'uppercase' }}>Monthly Revenue Trend</p>
@@ -524,7 +524,7 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
             </section>
 
             {/* 3. DETAILED SECTIONS */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '12px' }}>
 
                 {/* 4. DONOR & FUNDRAISING INTELLIGENCE */}
                 <section className="glass-panel" style={{ padding: '20px' }}>
@@ -581,7 +581,7 @@ const StrategicOverview: React.FC<StrategicOverviewProps> = ({ onModuleClick }) 
             </div>
 
             {/* 5. FINANCE & DEPARTMENT PANEL */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '12px' }}>
                 <section className="glass-panel" style={{ padding: '32px' }}>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 900, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <DollarSign size={20} color="var(--primary)" /> FINANCE & LIQUIDITY

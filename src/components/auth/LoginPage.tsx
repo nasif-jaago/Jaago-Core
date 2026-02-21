@@ -100,6 +100,7 @@ const LoginPage: React.FC = () => {
                     z-index: 10;
                     transform-style: preserve-3d;
                     perspective: 1000px;
+                    margin: 20px;
                 }
                 .vision-card, .mission-card {
                     background: #ffffff;
@@ -110,9 +111,7 @@ const LoginPage: React.FC = () => {
                     transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
                     color: #000;
                 }
-                .vision-card:hover, .mission-card:hover {
-                    transform: translateY(-10px) rotateX(5deg);
-                }
+                .vision-card:hover, .mission-card:hover { transform: translateY(-10px) rotateX(5deg); }
                 .accent-bar {
                     position: absolute;
                     left: 20px;
@@ -124,18 +123,52 @@ const LoginPage: React.FC = () => {
                 }
                 .spin { animation: spin 1.5s linear infinite; }
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+                @media (max-width: 1024px) {
+                    .glass-portal { gap: 40px; padding: 40px; }
+                    .vision-card h3, .mission-card h3 { font-size: 1.8rem !important; }
+                }
+
+                @media (max-width: 992px) {
+                    .glass-portal {
+                        flex-direction: column;
+                        width: 95%;
+                        max-width: 500px;
+                        padding: 30px;
+                        gap: 30px;
+                        border-radius: 30px;
+                        margin-top: 80px;
+                        margin-bottom: 80px;
+                        overflow-y: auto;
+                        max-height: calc(100vh - 40px);
+                    }
+                    .hide-on-mobile { display: none !important; }
+                    .login-title { font-size: 2.2rem !important; }
+                }
+
+                @media (max-width: 480px) {
+                    .glass-portal { padding: 20px; border-radius: 20px; }
+                    .login-title { font-size: 1.8rem !important; }
+                    .vision-card, .mission-card { padding: 20px; }
+                    .accent-bar { left: 10px; height: 80px; top: 70px; }
+                }
             `}</style>
 
             {/* Top Logo */}
-            <div style={{ position: 'absolute', top: 40, left: 60, zIndex: 100 }}>
+            <div className="hide-on-mobile" style={{ position: 'absolute', top: 40, left: 60, zIndex: 100 }}>
                 <JaagoLogo color="#fff" showFoundation={true} scale={0.7} />
             </div>
 
+            {/* Mobile Logo Only */}
+            <div className="show-mobile-only" style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 100 }}>
+                <JaagoLogo color="#fff" showFoundation={false} scale={0.5} />
+            </div>
+
+
             <div className="glass-portal">
-                {/* Left Side: Login Form */}
                 <div style={{ flex: 1, maxWidth: '400px' }}>
                     <div style={{ marginBottom: '40px' }}>
-                        <h1 style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '10px', letterSpacing: '-1px' }}>
+                        <h1 className="login-title" style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '10px', letterSpacing: '-1px' }}>
                             {isSignUp ? 'Join Us.' : 'Sign In.'}
                         </h1>
                         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1.1rem' }}>
@@ -274,7 +307,7 @@ const LoginPage: React.FC = () => {
             <div style={{ position: 'absolute', bottom: 40, width: '100%', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem', letterSpacing: '2px' }}>
                 © 2026 JAAGO FOUNDATION | CORE ECOSYSTEM
             </div>
-        </div>
+        </div >
     );
 };
 
