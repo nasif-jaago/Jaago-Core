@@ -345,9 +345,9 @@ const RequisitionFormPage: React.FC<RequisitionFormPageProps> = ({ requisitionId
             reason: formData.reason,
             product_line_ids: (formData.product_line_ids || []).map((line: any) => {
                 const lineValues = {
-                    product_id: extractId(line.product_id),
-                    x_studio_product_description: line.x_studio_product_description,
-                    product_uom_id: extractId(line.product_uom_id),
+                    product_id: extractId(line.product_id) || false,
+                    x_studio_product_description: line.x_studio_product_description || '',
+                    product_uom_id: extractId(line.product_uom_id) || false,
                     quantity: parseFloat(line.quantity as any) || 0,
                     x_studio_per_unit_price: parseFloat(line.x_studio_per_unit_price as any) || 0,
                     x_studio_estimated_price: parseFloat(line.x_studio_estimated_price as any) || 0

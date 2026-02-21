@@ -242,7 +242,8 @@ export const deleteRequisition = async (id: number): Promise<ApiResponse<boolean
  */
 export const fetchProducts = async (options: { searchTerm?: string; productFor?: string; companyId?: number } = {}, limit: number = 150): Promise<ApiResponse<Product[]>> => {
     try {
-        const domain: any[] = [['sale_ok', '=', true]];
+        // Use purchase_ok instead of sale_ok as Requisitions are usually for procurement
+        const domain: any[] = [['purchase_ok', '=', true]];
 
         if (options.companyId) {
             domain.push(['company_id', 'in', [options.companyId, false]]);
@@ -257,11 +258,12 @@ export const fetchProducts = async (options: { searchTerm?: string; productFor?:
         }
 
         const result = await odooCall('product.product', 'search_read', [domain], {
-            fields: ['name', 'display_name', 'default_code', 'list_price', 'standard_price', 'uom_id', 'categ_id'],
+            fields: ['name', 'display_name', 'default_code', 'list_price', 'standard_price', 'uom_id', 'categ_id', 'product_tmpl_id'],
             limit
         });
         return { success: true, data: result };
     } catch (error: any) {
+        console.error('Error fetching products:', error);
         return { success: false, error: error.message };
     }
 };
