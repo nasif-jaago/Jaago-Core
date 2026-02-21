@@ -15,7 +15,7 @@ create table if not exists public.login_requests (
     employee_id_number text, -- Odoo external ID or barcode
     department text,
     designation text,
-    status text not null default 'Pending' check (status in ('Pending', 'Approved', 'Rejected', 'Employee Not Found')),
+    status text not null default 'Pending' check (status in ('Pending', 'Approved', 'Rejected', 'Employee Not Found', 'Paused')),
     ip_address text,
     device_info jsonb,
     created_at timestamp with time zone default now(),

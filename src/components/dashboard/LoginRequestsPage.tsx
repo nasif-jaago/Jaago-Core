@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import {
     CheckCircle2, XCircle, Search, Clock,
     RefreshCw, AlertCircle, Eye, ClipboardList,
-    Monitor, Globe, History, X
+    Monitor, Globe, History, X, Trash2
 } from 'lucide-react';
 import {
     fetchLoginRequests, approveLoginRequest, rejectLoginRequest,
-    fetchRequestLogs, linkEmployeeToRequest, fetchOdooEmployeeByEmail
+    fetchRequestLogs, linkEmployeeToRequest, fetchOdooEmployeeByEmail,
+    pauseLoginRequest, deleteLoginRequest
 } from '../../api/AuthManagementService';
 import type { LoginRequest } from '../../api/AuthManagementService';
 import { useAuth } from '../../context/AuthContext';
@@ -22,6 +23,7 @@ const LoginRequestsPage: React.FC = () => {
     const [actionLoading, setActionLoading] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
     const [showRejectModal, setShowRejectModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     // Manual Linking State
     const [manualEmail, setManualEmail] = useState('');
@@ -105,6 +107,39 @@ const LoginRequestsPage: React.FC = () => {
             const updated = await fetchLoginRequests({ searchTerm: selectedRequest.id });
             if (updated.success && updated.data && updated.data.length > 0) setSelectedRequest(updated.data[0]);
             viewLogs(selectedRequest.id);
+        } else {
+            alert(res.error);
+        }
+        setActionLoading(false);
+    };
+
+    const handlePause = async (id: string) => {
+        if (!user) return;
+        if (!confirm('Are you sure you want to pause this user? They will not be able to log in.')) return;
+        setActionLoading(true);
+        const res = await pauseLoginRequest(id, user.id);
+        if (res.success) {
+            loadRequests();
+            if (selectedRequest?.id === id) {
+                const updated = await fetchLoginRequests({ searchTerm: id });
+                if (updated.success && updated.data && updated.data.length > 0) setSelectedRequest(updated.data[0]);
+                viewLogs(id);
+            }
+        } else {
+            alert(res.error);
+        }
+        setActionLoading(false);
+    };
+
+    const handleDelete = async (deleteAuth: boolean) => {
+        if (!user || !selectedRequest) return;
+        setActionLoading(true);
+        const res = await deleteLoginRequest(selectedRequest.id, user.id, deleteAuth);
+        if (res.success) {
+            loadRequests();
+            setSelectedRequest(null);
+            setShowDeleteModal(false);
+            setShowLogs(false);
         } else {
             alert(res.error);
         }
@@ -238,10 +273,12 @@ const LoginRequestsPage: React.FC = () => {
                                         padding: '4px 10px', borderRadius: '20px', fontSize: '0.65rem', fontWeight: 900,
                                         background: req.status === 'Approved' ? 'rgba(16, 185, 129, 0.1)' :
                                             req.status === 'Rejected' ? 'rgba(239, 68, 68, 0.1)' :
-                                                req.status === 'Pending' ? 'rgba(245, 197, 24, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                                req.status === 'Paused' ? 'rgba(148, 163, 184, 0.1)' :
+                                                    req.status === 'Pending' ? 'rgba(245, 197, 24, 0.1)' : 'rgba(239, 68, 68, 0.1)',
                                         color: req.status === 'Approved' ? '#10b981' :
                                             req.status === 'Rejected' ? '#ef4444' :
-                                                req.status === 'Pending' ? '#f5c518' : '#ef4444',
+                                                req.status === 'Paused' ? '#94a3b8' :
+                                                    req.status === 'Pending' ? '#f5c518' : '#ef4444',
                                         border: '1px solid currentColor'
                                     }}>
                                         {req.status.toUpperCase()}
@@ -262,7 +299,38 @@ const LoginRequestsPage: React.FC = () => {
                                                 {actionLoading ? <RefreshCw className="spin" size={14} /> : 'Approve'}
                                             </button>
                                         )}
-                                        {req.status === 'Pending' && (
+                                        {req.status === 'Approved' && (
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button
+                                                    onClick={() => handlePause(req.id)}
+                                                    disabled={actionLoading}
+                                                    className="btn-secondary"
+                                                    style={{ padding: '8px 16px', fontSize: '0.75rem', color: '#ef4444', border: '1px solid #ef4444' }}
+                                                >
+                                                    Pause
+                                                </button>
+                                            </div>
+                                        )}
+                                        {req.status === 'Paused' && (
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button
+                                                    onClick={() => handleApprove(req.id)}
+                                                    disabled={actionLoading}
+                                                    className="btn-3d"
+                                                    style={{ padding: '8px 16px', fontSize: '0.75rem', background: '#10b981', color: '#fff' }}
+                                                >
+                                                    Resume
+                                                </button>
+                                                <button
+                                                    onClick={() => { setSelectedRequest(req); setShowDeleteModal(true); }}
+                                                    className="btn-secondary"
+                                                    style={{ padding: '8px 16px', fontSize: '0.75rem', color: '#ef4444', boxShadow: '0 0 10px rgba(239, 68, 68, 0.3)' }}
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        )}
+                                        {(req.status === 'Pending' || req.status === 'Rejected') && (
                                             <button
                                                 onClick={() => { setSelectedRequest(req); setShowRejectModal(true); }}
                                                 className="btn-secondary"
@@ -279,24 +347,30 @@ const LoginRequestsPage: React.FC = () => {
                 </table>
             </div>
 
-            {/* Reject Modal */}
+            {/* Reject Modal - NOW TOP ALIGNED */}
             {showRejectModal && selectedRequest && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 4000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div className="glass-panel" style={{ width: '400px', padding: '32px', borderRadius: '24px', border: '1px solid #ef4444' }}>
-                        <h3 style={{ fontSize: '1.4rem', fontWeight: 900, marginBottom: '8px', color: '#ef4444' }}>Reject Request</h3>
-                        <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginBottom: '24px' }}>Please provide a reason for rejecting {selectedRequest.email}</p>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 4000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '60px 20px', overflowY: 'auto' }}>
+                    <div className="glass-panel scale-in" style={{ width: '100%', maxWidth: '440px', padding: '40px', borderRadius: '32px', border: '1px solid #ef4444', position: 'relative', background: 'rgba(15, 15, 15, 0.98)' }}>
+                        <button
+                            onClick={() => setShowRejectModal(false)}
+                            style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.05)', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '10px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                            <X size={20} />
+                        </button>
+                        <h3 style={{ fontSize: '1.6rem', fontWeight: 900, marginBottom: '8px', color: '#ef4444' }}>Reject Request</h3>
+                        <p style={{ color: 'var(--text-dim)', fontSize: '0.95rem', marginBottom: '28px' }}>Please provide a reason for rejecting {selectedRequest.email}</p>
 
                         <textarea
                             className="input-field"
                             placeholder="Reason for rejection..."
                             value={rejectionReason}
                             onChange={e => setRejectionReason(e.target.value)}
-                            style={{ width: '100%', height: '120px', padding: '16px', borderRadius: '16px', marginBottom: '24px' }}
+                            style={{ width: '100%', height: '140px', padding: '16px', borderRadius: '18px', marginBottom: '28px' }}
                         />
 
                         <div style={{ display: 'flex', gap: '12px' }}>
-                            <button onClick={() => setShowRejectModal(false)} className="btn-secondary" style={{ flex: 1 }}>Cancel</button>
-                            <button onClick={handleReject} disabled={!rejectionReason || actionLoading} className="btn-3d" style={{ flex: 1, background: '#ef4444', color: '#fff' }}>
+                            <button onClick={() => setShowRejectModal(false)} className="btn-secondary" style={{ flex: 1, padding: '14px', borderRadius: '14px' }}>Cancel</button>
+                            <button onClick={handleReject} disabled={!rejectionReason || actionLoading} className="btn-3d" style={{ flex: 1, padding: '14px', borderRadius: '14px', background: '#ef4444', color: '#fff' }}>
                                 {actionLoading ? <RefreshCw className="spin" size={18} /> : 'Confirm Reject'}
                             </button>
                         </div>
@@ -304,22 +378,22 @@ const LoginRequestsPage: React.FC = () => {
                 </div>
             )}
 
-            {/* Logs Timeline & Details Overlay */}
+            {/* Logs Timeline & Details Overlay - NOW TOP CENTERED MODAL */}
             {showLogs && selectedRequest && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', justifyContent: 'flex-end' }}>
-                    <div className="glass-panel" style={{ width: '100%', maxWidth: '600px', height: '100%', padding: '40px', borderRadius: '0', borderLeft: '1px solid var(--border-glass)', overflowY: 'auto' }}>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(15px)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '40px 20px', overflowY: 'auto' }}>
+                    <div className="glass-panel scale-in" style={{ width: '100%', maxWidth: '800px', padding: '40px', borderRadius: '32px', border: '1px solid var(--border-glass)', position: 'relative', background: 'rgba(15, 15, 15, 0.95)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: 'var(--primary-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000' }}>
                                     <ClipboardList size={22} />
                                 </div>
                                 <div>
-                                    <h3 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Request Details</h3>
+                                    <h3 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Account Management</h3>
                                     <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Full audit history and technical metadata</p>
                                 </div>
                             </div>
-                            <button onClick={() => { setShowLogs(false); setManualSearchResult(null); setSelectedRequest(null); }} className="btn-secondary" style={{ padding: '8px', borderRadius: '12px' }}>
-                                <X size={22} />
+                            <button onClick={() => { setShowLogs(false); setManualSearchResult(null); setSelectedRequest(null); }} className="btn-secondary" style={{ padding: '10px', borderRadius: '14px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none' }}>
+                                <X size={24} />
                             </button>
                         </div>
 
@@ -462,9 +536,28 @@ const LoginRequestsPage: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Actions */}
                         <div style={{ marginTop: '48px', paddingTop: '32px', borderTop: '1px solid var(--border-glass)', display: 'flex', gap: '16px' }}>
-                            {selectedRequest.status !== 'Approved' && (
+                            {selectedRequest.status === 'Approved' && (
+                                <button
+                                    onClick={() => handlePause(selectedRequest.id)}
+                                    disabled={actionLoading}
+                                    className="btn-secondary"
+                                    style={{ flex: 1, padding: '16px', color: '#ef4444', border: '1px solid #ef4444' }}
+                                >
+                                    Pause Access
+                                </button>
+                            )}
+                            {selectedRequest.status === 'Paused' && (
+                                <button
+                                    onClick={() => handleApprove(selectedRequest.id)}
+                                    disabled={actionLoading}
+                                    className="btn-3d"
+                                    style={{ flex: 1, padding: '16px', background: '#10b981', color: '#fff' }}
+                                >
+                                    Resume Access
+                                </button>
+                            )}
+                            {selectedRequest.status === 'Pending' && (
                                 <button
                                     onClick={() => handleApprove(selectedRequest.id)}
                                     disabled={actionLoading}
@@ -474,16 +567,68 @@ const LoginRequestsPage: React.FC = () => {
                                     {actionLoading ? <RefreshCw className="spin" size={20} /> : 'Approve Access'}
                                 </button>
                             )}
-                            {selectedRequest.status === 'Pending' && (
-                                <button
-                                    onClick={() => setShowRejectModal(true)}
-                                    disabled={actionLoading}
-                                    className="btn-secondary"
-                                    style={{ flex: 1, padding: '16px', color: '#ef4444' }}
-                                >
-                                    Reject Request
-                                </button>
-                            )}
+                            <button
+                                onClick={() => setShowDeleteModal(true)}
+                                disabled={actionLoading}
+                                className="btn-secondary"
+                                style={{
+                                    flex: 1, padding: '16px', color: '#ef4444',
+                                    boxShadow: '0 0 15px rgba(239, 68, 68, 0.4)',
+                                    border: '1px solid rgba(239, 68, 68, 0.5)',
+                                    textShadow: '0 0 8px rgba(239, 68, 68, 0.3)'
+                                }}
+                            >
+                                Remove User
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Modal - TOP ALIGNED & NEON */}
+            {showDeleteModal && selectedRequest && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 5000, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(25px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '60px 20px', overflowY: 'auto' }}>
+                    <div className="glass-panel scale-in" style={{ width: '100%', maxWidth: '480px', padding: '48px', borderRadius: '32px', border: '1px solid #ef4444', position: 'relative', background: 'rgba(10, 10, 10, 0.98)', boxShadow: '0 0 40px rgba(239, 68, 68, 0.15)' }}>
+                        <button
+                            onClick={() => setShowDeleteModal(false)}
+                            style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '10px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                            <X size={20} />
+                        </button>
+                        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                            <div style={{
+                                width: '80px', height: '80px', borderRadius: '24px',
+                                background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                margin: '0 auto 20px',
+                                boxShadow: '0 0 30px rgba(239, 68, 68, 0.3)',
+                                border: '1px solid rgba(239, 68, 68, 0.2)'
+                            }}>
+                                <Trash2 size={40} />
+                            </div>
+                            <h3 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#ef4444', marginBottom: '8px', textShadow: '0 0 10px rgba(239, 68, 68, 0.5)' }}>Critical Action</h3>
+                            <p style={{ color: 'var(--text-dim)', fontSize: '1rem' }}>Permanently remove <strong>{selectedRequest.email}</strong>?</p>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <button onClick={() => handleDelete(false)} className="btn-secondary" style={{ padding: '18px', borderRadius: '18px', fontSize: '0.9rem', fontWeight: 700 }}>
+                                Remove Database Request Only
+                            </button>
+                            <button
+                                onClick={() => handleDelete(true)}
+                                className="btn-3d"
+                                style={{
+                                    background: '#ef4444', color: '#fff', padding: '18px', borderRadius: '18px',
+                                    fontSize: '0.9rem', fontWeight: 800,
+                                    boxShadow: '0 0 25px rgba(239, 68, 68, 0.6)',
+                                    border: '1px solid #ff4d4d'
+                                }}
+                            >
+                                Full System Purge
+                            </button>
+                            <button onClick={() => setShowDeleteModal(false)} className="btn-secondary" style={{ padding: '14px', borderRadius: '14px', border: 'none', color: 'var(--text-muted)' }}>
+                                Cancel & Go Back
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -492,6 +637,8 @@ const LoginRequestsPage: React.FC = () => {
             <style>{`
                 .spin { animation: spin 1s linear infinite; }
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                .scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+                @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
             `}</style>
         </div>
     );

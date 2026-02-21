@@ -16,7 +16,7 @@ export interface LoginRequest {
     employee_id_number?: string;
     department?: string;
     designation?: string;
-    status: 'Pending' | 'Approved' | 'Rejected' | 'Employee Not Found';
+    status: 'Pending' | 'Approved' | 'Rejected' | 'Employee Not Found' | 'Paused';
     ip_address?: string;
     device_info?: any;
     created_at: string;
@@ -37,7 +37,9 @@ export type LogAction =
     | 'Approved'
     | 'Rejected'
     | 'Login Attempt Blocked'
-    | 'Login Success';
+    | 'Login Success'
+    | 'Paused'
+    | 'Removed';
 
 export interface LoginLog {
     id: string;
@@ -362,6 +364,63 @@ export const linkEmployeeToRequest = async (requestId: string, employeeData: any
             performed_by: adminId,
             metadata: employeeData
         });
+
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Admin: Pause/Suspend Login Request
+ */
+export const pauseLoginRequest = async (requestId: string, adminId: string) => {
+    try {
+        const { data: request, error: getErr } = await supabase.from('login_requests').select('*').eq('id', requestId).single();
+        if (getErr || !request) throw new Error('Request not found');
+
+        const { error } = await supabase.from('login_requests').update({
+            status: 'Paused',
+            updated_at: new Date().toISOString()
+        }).eq('id', requestId);
+
+        if (error) throw error;
+
+        // Revoke role in Supabase
+        if (request.supabase_user_id) {
+            await supabaseAdmin.auth.admin.updateUserById(request.supabase_user_id, {
+                user_metadata: { role: 'paused_user', approved: false }
+            });
+        }
+
+        await createAuditLog({
+            request_id: requestId,
+            action: 'Paused',
+            performed_by: adminId
+        });
+
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+};
+
+/**
+ * Admin: Remove Login Request & User
+ */
+export const deleteLoginRequest = async (requestId: string, adminId: string, deleteAuthUser: boolean = false) => {
+    try {
+        const { data: request, error: getErr } = await supabase.from('login_requests').select('*').eq('id', requestId).single();
+        if (getErr || !request) throw new Error('Request not found');
+
+        // Optional: Delete from Supabase Auth
+        if (deleteAuthUser && request.supabase_user_id) {
+            const { error: authErr } = await supabaseAdmin.auth.admin.deleteUser(request.supabase_user_id);
+            if (authErr) console.error('Auth deletion failed:', authErr);
+        }
+
+        const { error } = await supabase.from('login_requests').delete().eq('id', requestId);
+        if (error) throw error;
 
         return { success: true };
     } catch (error: any) {

@@ -270,15 +270,20 @@ const SystemAdminDashboard: React.FC = () => {
                 )}
             </div>
 
-            {/* Invite Modal */}
+            {/* Invite Modal - NOW TOP ALIGNED */}
             {isInviteModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                    <div className="glass-panel scale-in" style={{ width: '100%', maxWidth: '400px', padding: '32px', borderRadius: '24px', position: 'relative' }}>
-                        <button onClick={() => setIsInviteModalOpen(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
-                        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                            <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'rgba(245, 197, 24, 0.1)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}><UserPlus size={28} /></div>
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: 900 }}>Invite New Admin</h2>
-                            <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>Send an invitation & create a login request</p>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 4000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '60px 20px', overflowY: 'auto' }}>
+                    <div className="glass-panel scale-in" style={{ width: '100%', maxWidth: '480px', padding: '48px', borderRadius: '32px', position: 'relative', background: 'rgba(20, 20, 20, 0.95)', border: '1px solid var(--border-glass)' }}>
+                        <button
+                            onClick={() => setIsInviteModalOpen(false)}
+                            style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.05)', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '10px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                            <X size={20} />
+                        </button>
+                        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                            <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(245, 197, 24, 0.1)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}><UserPlus size={32} /></div>
+                            <h2 style={{ fontSize: '1.8rem', fontWeight: 900, marginBottom: '8px' }}>Invite Administrator</h2>
+                            <p style={{ color: 'var(--text-dim)', fontSize: '0.95rem' }}>Grant secure access to the ecosystem</p>
                         </div>
                         <form onSubmit={handleInvite} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                             <div style={{ position: 'relative' }}>

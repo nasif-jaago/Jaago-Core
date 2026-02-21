@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
-import { Bell, Search, Menu, ChevronDown, LogOut, Settings } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, Search, Menu, ChevronDown, LogOut, Settings, Check, Trash2, Clock, Info, AlertTriangle, CheckCircle2, XCircle, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Palette, Sparkles, Monitor, Tablet, Smartphone } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { fetchNotifications, markAsRead, markAllAsRead, subscribeToNotifications } from '../../api/NotificationService';
+import type { Notification } from '../../api/NotificationService';
 
 const Logo3D = () => (
     <motion.div
@@ -86,14 +89,72 @@ const navItems = [
 interface HeaderProps {
     activeTab: string;
     setActiveTab: (tab: string) => void;
+    onToggleSidebar?: () => void;
+    isSidebarOpen?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
+const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, onToggleSidebar, isSidebarOpen }) => {
     const { user, signOut } = useAuth();
     const { theme, cycleTheme, viewMode, cycleViewMode } = useTheme();
     const role = user?.user_metadata?.role || 'user';
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    // Fetch Notifications
+    useEffect(() => {
+        if (!user) return;
+
+        const loadNotifications = async () => {
+            const res = await fetchNotifications(user.id);
+            if (res.success && res.data) {
+                setNotifications(res.data);
+                setUnreadCount(res.data.filter(n => !n.is_read).length);
+            }
+        };
+
+        loadNotifications();
+
+        // Real-time subscription
+        const channel = subscribeToNotifications(user.id, (newNotif) => {
+            setNotifications(prev => [newNotif, ...prev]);
+            setUnreadCount(prev => prev + 1);
+        });
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user]);
+
+    const handleMarkAsRead = async (id: string) => {
+        const res = await markAsRead(id);
+        if (res.success) {
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+            setUnreadCount(prev => Math.max(0, prev - 1));
+        }
+    };
+
+    const handleMarkAllRead = async () => {
+        if (!user) return;
+        const res = await markAllAsRead(user.id);
+        if (res.success) {
+            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            setUnreadCount(0);
+        }
+    };
+
+    const getIcon = (type: string) => {
+        switch (type) {
+            case 'info': return <Info size={16} color="#3b82f6" />;
+            case 'warning': return <AlertTriangle size={16} color="#f59e0b" />;
+            case 'success': return <CheckCircle2 size={16} color="#10b981" />;
+            case 'error': return <XCircle size={16} color="#ef4444" />;
+            case 'reminder': return <Clock size={16} color="#8b5cf6" />;
+            default: return <Info size={16} color="var(--primary)" />;
+        }
+    };
 
     const currentNavItem = navItems.find(item => item.id === activeTab) || navItems[0];
 
@@ -112,37 +173,59 @@ const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
             position: 'sticky',
             top: 0,
             zIndex: 100,
-            padding: '0 var(--header-padding, 2rem)',
-            height: '70px',
+            padding: viewMode === 'mobile' ? '0 1rem' : '0 2rem',
+            height: 'var(--header-height)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderBottom: '1px solid var(--glass-border)',
-            transition: 'padding 0.3s ease'
+            borderBottom: '1px solid var(--border-glass)',
+            transition: 'all 0.3s ease'
         }}>
-            <div
-                onClick={() => setActiveTab('Dashboard')}
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    transition: 'opacity 0.2s',
-                    flexShrink: 0
-                }}
-            >
-                <div className="hide-mobile">
-                    <Logo3D />
-                </div>
-                <div className="show-mobile-only" style={{ transform: 'scale(0.8)', marginLeft: '-10px' }}>
-                    <Logo3D />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {/* Hamburger Menu - Only Mobile/Tablet */}
+                <button
+                    onClick={onToggleSidebar}
+                    className="show-mobile-only hide-desktop"
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-main)',
+                        cursor: 'pointer',
+                        padding: '8px',
+                        display: viewMode === 'desktop' ? 'none' : 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                >
+                    <Menu size={24} />
+                </button>
+
+                <div
+                    onClick={() => setActiveTab('Dashboard')}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        transition: 'opacity 0.2s',
+                        flexShrink: 0
+                    }}
+                >
+                    <div className="hide-mobile">
+                        <Logo3D />
+                    </div>
+                    {viewMode === 'mobile' && (
+                        <div style={{ transform: 'scale(0.7)', marginLeft: '-8px' }}>
+                            <Logo3D />
+                        </div>
+                    )}
                 </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(0.5rem, 2vw, 1.5rem)', flex: 1, justifyContent: 'flex-end' }}>
-                {/* Navigation Dropdown */}
-                <div style={{ position: 'relative' }}>
+                {/* Navigation Dropdown - Hidden on Mobile/Tablet drawer mode */}
+                <div style={{ position: 'relative' }} className="hide-mobile hide-tablet">
                     <button
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
                         className="responsive-nav-btn"
@@ -358,10 +441,150 @@ const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                     </motion.button>
                 </div>
 
-                <button className="hide-mobile" style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', position: 'relative', padding: '8px' }}>
-                    <Bell size={20} />
-                    <span style={{ position: 'absolute', top: '4px', right: '4px', width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%', border: '2px solid var(--bg-surface)' }} />
-                </button>
+                <div style={{ position: 'relative' }}>
+                    <button
+                        onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                        className="hide-mobile"
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: isNotificationsOpen ? 'var(--primary)' : 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            position: 'relative',
+                            padding: '8px',
+                            transition: 'all 0.3s ease'
+                        }}
+                    >
+                        <Bell size={20} />
+                        {unreadCount > 0 && (
+                            <span style={{
+                                position: 'absolute',
+                                top: '4px',
+                                right: '4px',
+                                minWidth: '16px',
+                                height: '16px',
+                                padding: '0 4px',
+                                background: '#ef4444',
+                                color: '#fff',
+                                fontSize: '10px',
+                                fontWeight: 800,
+                                borderRadius: '10px',
+                                border: '2px solid var(--bg-surface)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 0 10px rgba(239, 68, 68, 0.4)'
+                            }}>
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                        )}
+                    </button>
+
+                    <AnimatePresence>
+                        {isNotificationsOpen && (
+                            <>
+                                <div
+                                    onClick={() => setIsNotificationsOpen(false)}
+                                    style={{ position: 'fixed', inset: 0, zIndex: 998 }}
+                                />
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    style={{
+                                        position: 'absolute',
+                                        top: 'calc(100% + 10px)',
+                                        right: 0,
+                                        width: '360px',
+                                        background: 'rgba(10, 15, 25, 0.98)',
+                                        borderRadius: '24px',
+                                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                                        boxShadow: '0 25px 70px rgba(0, 0, 0, 0.6)',
+                                        zIndex: 999,
+                                        overflow: 'hidden',
+                                        backdropFilter: 'blur(30px) saturate(180%)'
+                                    }}
+                                >
+                                    <div style={{ padding: '20px', borderBottom: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>Notifications</h3>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            {unreadCount > 0 && (
+                                                <button
+                                                    onClick={handleMarkAllRead}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                                                >
+                                                    Mark all read
+                                                </button>
+                                            )}
+                                            <button onClick={() => setIsNotificationsOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ maxHeight: '400px', overflowY: 'auto', padding: '10px' }}>
+                                        {notifications.length === 0 ? (
+                                            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-dim)' }}>
+                                                <Bell size={32} style={{ opacity: 0.2, marginBottom: '12px' }} />
+                                                <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>No notifications yet</div>
+                                                <div style={{ fontSize: '0.75rem' }}>We'll notify you when something happens</div>
+                                            </div>
+                                        ) : (
+                                            notifications.map(notif => (
+                                                <div
+                                                    key={notif.id}
+                                                    onClick={() => !notif.is_read && handleMarkAsRead(notif.id)}
+                                                    style={{
+                                                        padding: '16px',
+                                                        borderRadius: '16px',
+                                                        background: notif.is_read ? 'transparent' : 'rgba(255,255,255,0.03)',
+                                                        marginBottom: '4px',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s',
+                                                        position: 'relative'
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.background = notif.is_read ? 'transparent' : 'rgba(255,255,255,0.03)'}
+                                                >
+                                                    {!notif.is_read && (
+                                                        <span style={{ position: 'absolute', top: '20px', right: '16px', width: '6px', height: '6px', background: 'var(--primary)', borderRadius: '50%' }} />
+                                                    )}
+                                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                                        <div style={{
+                                                            width: '36px', height: '36px', borderRadius: '10px',
+                                                            background: 'rgba(255,255,255,0.05)', display: 'flex',
+                                                            alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                                                        }}>
+                                                            {getIcon(notif.type)}
+                                                        </div>
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ fontSize: '0.85rem', fontWeight: notif.is_read ? 600 : 800, marginBottom: '2px', color: notif.is_read ? 'var(--text-main)' : '#fff' }}>
+                                                                {notif.title}
+                                                            </div>
+                                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', lineHeight: 1.4, marginBottom: '6px' }}>
+                                                                {notif.message}
+                                                            </div>
+                                                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                <Clock size={10} />
+                                                                {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+
+                                    <div style={{ padding: '12px', textAlign: 'center', borderTop: '1px solid var(--border-glass)' }}>
+                                        <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+                                            View all activity
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            </>
+                        )}
+                    </AnimatePresence>
+                </div>
 
                 {/* User Profile Dropdown */}
                 <div style={{ position: 'relative' }}>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import RightPanel from './components/layout/RightPanel';
 import Header from './components/layout/Header';
+import SidebarLeft from './components/layout/SidebarLeft';
 import DashboardCore from './components/dashboard/DashboardCore';
 import StrategicOverview from './components/dashboard/StrategicOverview';
 import HRDashboard from './components/dashboard/HRDashboard';
@@ -54,8 +55,19 @@ const Layout: React.FC = () => {
   const [chatterMode, setChatterMode] = useState<'small' | 'full'>('small');
 
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isAIBabaOpen, setIsAIBabaOpen] = useState(false);
   const [isLauncherOpen, setIsLauncherOpen] = useState(false);
+
+  // Sync sidebar collapse with viewMode
+  useEffect(() => {
+    if (viewMode === 'tablet') {
+      setIsSidebarCollapsed(true);
+    } else {
+      setIsSidebarCollapsed(false);
+    }
+  }, [viewMode]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -158,9 +170,31 @@ const Layout: React.FC = () => {
   };
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${viewMode}`}>
+      {/* Mobile Drawer Overlay */}
+      <div
+        className={`drawer-overlay ${isSidebarOpen ? 'open' : ''}`}
+        onClick={() => setIsSidebarOpen(false)}
+      />
+
+      {/* Sidebar Left - Responsive */}
+      <div className={`sidebar-wrapper ${isSidebarCollapsed ? 'collapsed' : ''} ${viewMode === 'mobile' ? 'mobile-drawer' : ''} ${isSidebarOpen && viewMode === 'mobile' ? 'open' : ''}`}>
+        <SidebarLeft
+          activeTab={activeTab}
+          setActiveTab={(tab) => { handleTabChange(tab); setIsSidebarOpen(false); }}
+          user={user}
+          isCollapsed={isSidebarCollapsed}
+          onLogoClick={() => { setActiveTab('Dashboard'); setIsSidebarOpen(false); }}
+        />
+      </div>
+
       <main className="main-content" style={{ marginLeft: 0 }}>
-        <Header activeTab={activeTab} setActiveTab={handleTabChange} />
+        <Header
+          activeTab={activeTab}
+          setActiveTab={handleTabChange}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          isSidebarOpen={isSidebarOpen}
+        />
 
         <div style={{ padding: '0 1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div className="breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
