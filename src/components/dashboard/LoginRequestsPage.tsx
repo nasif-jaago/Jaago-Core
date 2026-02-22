@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
     CheckCircle2, XCircle, Search, Clock,
     RefreshCw, AlertCircle, Eye, ClipboardList,
-    Monitor, Globe, History, X, Trash2, Mail, Send, Copy, Check, ExternalLink
+    Monitor, Globe, History, X, Trash2, Mail, Send, Copy, Check, ExternalLink, Users
 } from 'lucide-react';
 import {
     fetchLoginRequests, approveLoginRequest, rejectLoginRequest,
@@ -11,6 +11,7 @@ import {
 } from '../../api/AuthManagementService';
 import type { LoginRequest } from '../../api/AuthManagementService';
 import { useAuth } from '../../context/AuthContext';
+import BulkInviter from './BulkInviter';
 
 // ── Email Composer Modal ─────────────────────────────────────────────────────
 interface EmailComposerProps {
@@ -269,6 +270,7 @@ const LoginRequestsPage: React.FC = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showEmailComposer, setShowEmailComposer] = useState(false);
     const [emailTarget, setEmailTarget] = useState<LoginRequest | null>(null);
+    const [showBulkInviter, setShowBulkInviter] = useState(false);
 
     // Manual Linking State
     const [manualEmail, setManualEmail] = useState('');
@@ -445,6 +447,17 @@ const LoginRequestsPage: React.FC = () => {
                             <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#10b981' }}>{stats.approved}</span>
                         </div>
                     </div>
+                    <button
+                        onClick={() => setShowBulkInviter(true)}
+                        className="btn-3d"
+                        style={{
+                            padding: '12px 20px', borderRadius: '12px',
+                            background: '#F5C518', color: '#000',
+                            display: 'flex', alignItems: 'center', gap: '10px'
+                        }}
+                    >
+                        <Users size={20} /> Bulk Invite
+                    </button>
                     <button onClick={loadRequests} className="btn-secondary" style={{ padding: '12px', borderRadius: '12px' }}>
                         <RefreshCw size={20} className={loading ? 'spin' : ''} />
                     </button>
@@ -834,6 +847,11 @@ const LoginRequestsPage: React.FC = () => {
                     onClose={() => { setShowEmailComposer(false); setEmailTarget(null); }}
                 />
             )}
+            {/* ── Bulk Inviter Modal ── */}
+            <BulkInviter
+                isOpen={showBulkInviter}
+                onClose={() => setShowBulkInviter(false)}
+            />
 
             <style>{`
                 .spin { animation: spin 1s linear infinite; }
