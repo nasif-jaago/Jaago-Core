@@ -28,6 +28,7 @@ import { getUid } from '../../api/odoo';
 import RequisitionProductLines from './RequisitionProductLines';
 import ApprovalHistoryTable from './ApprovalHistoryTable';
 import RefuseModal from './RefuseModal';
+import { generateRequisitionPDF } from '../../utils/pdfGenerator';
 import type {
     RequisitionRequest,
     RequisitionFormValues,
@@ -415,8 +416,42 @@ const RequisitionFormPage: React.FC<RequisitionFormPageProps> = ({ requisitionId
 
     const handlePrint = async () => {
         if (!requisitionId) return;
-        const res = await downloadPDF(requisitionId);
-        if (res.success && res.data) window.open(res.data, '_blank');
+
+        const companyName = Array.isArray(formData.company_id) ? formData.company_id[1] : '--';
+        let currency = getCurrencySymbol();
+
+        // Custom requirements: JAAGO Foundation -> BDT
+        if (companyName.trim().toLowerCase().includes('jaago foundation')) {
+            currency = 'BDT';
+        }
+
+        const pdfData = {
+            prNumber: formData.pr_number || 'REQUISITION',
+            company: companyName,
+            requestOwner: Array.isArray(formData.request_owner_id) ? formData.request_owner_id[1] : '--',
+            department: Array.isArray(formData.x_studio_departmentproject_name) ? formData.x_studio_departmentproject_name[1] : '--',
+            subject: formData.name || '--',
+            date: formData.date || '--',
+            totalAmount: (formData.x_studio_total_amount || 0).toFixed(2), // Float field
+            currency: currency,
+            reasonForPurchase: formData.x_studio_reason_for_purchase || '--',
+            deliveryInstructions: formData.x_studio_delivery_instructions || '--',
+            productLines: (formData.product_line_ids as any || []).map((l: any) => ({
+                product: Array.isArray(l.product_id) ? l.product_id[1] : '--',
+                description: l.x_studio_product_description || '--',
+                qty: l.quantity?.toString() || '0',
+                unit: Array.isArray(l.product_uom_id) ? l.product_uom_id[1] : '--',
+                price: (l.x_studio_per_unit_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
+                total: (l.x_studio_estimated_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })
+            })),
+            approvalHistory: (formData.approval_history_ids as any || []).map((h: any) => ({
+                name: Array.isArray(h.approver_id) ? h.approver_id[1] : 'Approver',
+                status: h.decision || 'pending',
+                date: h.decision_date || '--'
+            }))
+        };
+
+        generateRequisitionPDF(pdfData);
     };
 
     const getCurrencySymbol = () => {
