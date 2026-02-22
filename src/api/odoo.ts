@@ -12,13 +12,28 @@ export const ODOO_CONFIG = {
 
 const IS_MOCK_MODE = false;
 
-// In production, we might need a different base URL or no proxy
-// Check if we are running in a production environment
+// Environment-aware Configuration
 const IS_PROD = import.meta.env.PROD;
 
-// If we have a proxy on the production server, keep using /odoo-api
-// Otherwise, we might need to point directly to Odoo (though this may hit CORS)
-const BASE_URL = '/odoo-api';
+/**
+ * BASE_URL Logic:
+ * 1. Uses VITE_ODOO_BASE_URL if defined in .env
+ * 2. Falls back to '/odoo-api' (Standard Proxy)
+ * 3. Final fallback to direct Odoo URL (requires CORS allowed on Odoo side)
+ */
+export const getBaseUrl = () => {
+    const envUrl = import.meta.env.VITE_ODOO_BASE_URL;
+    if (envUrl) return envUrl;
+
+    // If we are on production and NOT using a proxy, we use the direct domain
+    if (IS_PROD && !window.location.pathname.startsWith('/odoo-api')) {
+        return `https://${ODOO_CONFIG.DOMAIN}`;
+    }
+
+    return '/odoo-api';
+};
+
+const BASE_URL = getBaseUrl();
 
 export interface OdooResponse<T> {
     success: boolean;
@@ -28,30 +43,31 @@ export interface OdooResponse<T> {
     syncTime: string;
 }
 
-/**
- * Helper to safely parse JSON and handle HTML error pages
- * This catches deployment issues where the API path returns index.html instead of JSON.
- */
 const safeJson = async (response: Response) => {
     const contentType = response.headers.get('content-type');
+    const status = response.status;
 
     // Check if we received HTML instead of JSON
     if (contentType && contentType.includes('text/html')) {
         const text = await response.text();
         if (text.includes('<!DOCTYPE html>') || text.includes('<html')) {
-            throw new Error(
-                `DEPLOYMENT ERROR: The API proxy "${BASE_URL}" is not configured on the production server. ` +
-                `Current Host: ${window.location.hostname}. ` +
-                `The request returned HTML instead of JSON. Please configure your web server (Nginx/Apache) ` +
-                `to proxy "${BASE_URL}" to "https://jaago-foundation.odoo.com".`
-            );
+            const errorMsg = `DEPLOYMENT ERROR: The API proxy "${BASE_URL}" is not configured on the production server. \n` +
+                `Current Host: ${window.location.hostname}\n` +
+                `HTTP Status: ${status}\n` +
+                `The request to ${BASE_URL} returned the website's HTML instead of API data. \n\n` +
+                `FIX: You must update your Nginx/Apache configuration to proxy "${BASE_URL}" to "https://jaago-foundation.odoo.com". \n` +
+                `See the NGINX_PROXY.conf file in the project root for the correct configuration.`;
+
+            console.error('API Connectivity Error:', errorMsg);
+            throw new Error(errorMsg);
         }
     }
 
     try {
         return await response.json();
     } catch (e) {
-        throw new Error('Failed to parse API response as JSON. The server might be returning an error page instead of data.');
+        const text = await response.text().catch(() => 'No response body');
+        throw new Error(`Failed to parse API response as JSON (Status: ${status}). Body: ${text.substring(0, 100)}...`);
     }
 };
 
