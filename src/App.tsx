@@ -36,6 +36,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './components/auth/LoginPage';
 import RequestAccessPage from './components/auth/RequestAccessPage';
 import AcceptInvitePage from './components/auth/AcceptInvitePage';
+import ResetPasswordPage from './components/auth/ResetPasswordPage';
 import DashboardChatter from './components/dashboard/DashboardChatter';
 import AIBaba from './components/ai/AIBaba';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -102,6 +103,14 @@ const Layout: React.FC = () => {
         <RefreshCcw className="spin" size={32} color="var(--primary)" />
       </div>
     );
+  }
+  // Detect password reset / recovery flow from Supabase
+  const isRecoveryMode = window.location.pathname === '/reset-password' ||
+    window.location.hash.includes('type=recovery') ||
+    window.location.search.includes('type=recovery');
+
+  if (isRecoveryMode) {
+    return <ResetPasswordPage />;
   }
 
   if (!user) {

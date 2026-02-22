@@ -269,7 +269,22 @@ const LoginPage: React.FC = () => {
                                     <input type="checkbox" style={{ accentColor: '#F5C518', width: '16px', height: '16px' }} />
                                     Remember me
                                 </label>
-                                <span onClick={handleForgotPassword} style={{ color: '#F5C518', cursor: 'pointer', fontWeight: 700 }}>Forgot?</span>
+                                <span
+                                    onClick={handleForgotPassword}
+                                    style={{
+                                        color: '#F5C518',
+                                        cursor: 'pointer',
+                                        fontWeight: 800,
+                                        transition: 'all 0.3s ease',
+                                        padding: '4px 8px',
+                                        borderRadius: '8px',
+                                        background: 'rgba(245,197,24,0.05)'
+                                    }}
+                                    onMouseOver={(e) => (e.currentTarget as HTMLElement).style.background = 'rgba(245,197,24,0.15)'}
+                                    onMouseOut={(e) => (e.currentTarget as HTMLElement).style.background = 'rgba(245,197,24,0.05)'}
+                                >
+                                    Forgot?
+                                </span>
                             </div>
 
                             <button type="submit" disabled={loading} style={{ width: '100%', background: '#F5C518', color: '#000', border: 'none', padding: '17px', borderRadius: '14px', fontWeight: 800, fontSize: '1rem', cursor: 'pointer', transition: 'all 0.3s', marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 12px 30px rgba(245,197,24,0.25)' }}>
@@ -360,7 +375,22 @@ const LoginPage: React.FC = () => {
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}>
                                         <input type="checkbox" style={{ accentColor: '#F5C518' }} />Remember
                                     </label>
-                                    <span onClick={handleForgotPassword} style={{ color: '#F5C518', cursor: 'pointer', fontWeight: 600 }}>Forgot?</span>
+                                    <span
+                                        onClick={handleForgotPassword}
+                                        style={{
+                                            color: '#F5C518',
+                                            cursor: 'pointer',
+                                            fontWeight: 800,
+                                            transition: 'all 0.3s ease',
+                                            padding: '4px 8px',
+                                            borderRadius: '8px',
+                                            background: 'rgba(245,197,24,0.05)'
+                                        }}
+                                        onMouseOver={(e) => (e.currentTarget as HTMLElement).style.background = 'rgba(245,197,24,0.15)'}
+                                        onMouseOut={(e) => (e.currentTarget as HTMLElement).style.background = 'rgba(245,197,24,0.05)'}
+                                    >
+                                        Forgot?
+                                    </span>
                                 </div>
                                 <button type="submit" disabled={loading} style={{ width: '100%', background: '#F5C518', color: '#000', border: 'none', padding: '16px', borderRadius: '14px', fontWeight: 800, fontSize: '1rem', cursor: 'pointer', transition: 'all 0.3s', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 16px 36px rgba(245,197,24,0.2)' }}>
                                     {loading ? <RefreshCw className="spin" size={20} /> : (isSignUp ? 'Create Account' : 'Sign In Now')}
@@ -470,7 +500,22 @@ const LoginPage: React.FC = () => {
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}>
                                         <input type="checkbox" style={{ accentColor: '#F5C518' }} />Remember
                                     </label>
-                                    <span onClick={handleForgotPassword} style={{ color: '#F5C518', cursor: 'pointer', fontWeight: 600 }}>Forgot?</span>
+                                    <span
+                                        onClick={handleForgotPassword}
+                                        style={{
+                                            color: '#F5C518',
+                                            cursor: 'pointer',
+                                            fontWeight: 800,
+                                            transition: 'all 0.3s ease',
+                                            padding: '4px 8px',
+                                            borderRadius: '8px',
+                                            background: 'rgba(245,197,24,0.05)'
+                                        }}
+                                        onMouseOver={(e) => (e.currentTarget as HTMLElement).style.background = 'rgba(245,197,24,0.15)'}
+                                        onMouseOut={(e) => (e.currentTarget as HTMLElement).style.background = 'rgba(245,197,24,0.05)'}
+                                    >
+                                        Forgot?
+                                    </span>
                                 </div>
                                 <button type="submit" disabled={loading} style={{ width: '100%', background: '#F5C518', color: '#000', border: 'none', padding: '18px', borderRadius: '16px', fontWeight: 800, fontSize: '1.1rem', cursor: 'pointer', transition: 'all 0.3s', marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', boxShadow: '0 20px 40px rgba(245,197,24,0.2)' }}>
                                     {loading ? <RefreshCw className="spin" size={20} /> : (isSignUp ? 'Create Account' : 'Sign In Now')}
